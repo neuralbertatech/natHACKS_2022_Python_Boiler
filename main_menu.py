@@ -6,11 +6,17 @@ TO DO:
             muse (2/S)
     Compartmentalize the board id grab in utils (pass in hardware/model/datatype) 
     
+    Impedence menu
+        Look for muse impedance check scripts
+        Confirm that the OpenBCI Impedence checks are working properly
+
     For time sync - add back in pyLSL? 
 
     Render GA ERPs in results window from the either the baseline or the session
+        Choose from baseline/session 
 
-
+    Logisitics:
+        Send Paul another Muse and possibly an arduino + light? 
 
 Old description:
 This is the menu that starts the spectrograph
