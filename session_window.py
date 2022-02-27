@@ -54,9 +54,6 @@ import asyncio
 
 from scipy.signal import butter, lfilter, freqz, hilbert, chirp
 
-
-import matplotlib.pyplot as plt
-
 SIMULATE = 0
 FILE = 1
 LIVESTREAM = 2
