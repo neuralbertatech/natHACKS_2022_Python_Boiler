@@ -1,4 +1,18 @@
 '''
+TO DO:
+    Main Menu:
+        Add in hardware/model:
+            unicorn
+            muse (2/S)
+    Compartmentalize the board id grab in utils (pass in hardware/model/datatype) 
+    
+    For time sync - add back in pyLSL? 
+
+    Render GA ERPs in results window from the either the baseline or the session
+
+
+
+Old description:
 This is the menu that starts the spectrograph
 It allows the user to decide of file reading, simulation, or livestreaming from hardware.
 And to select the hardware they're using/emulation, as well as the file, arduino port, etc
