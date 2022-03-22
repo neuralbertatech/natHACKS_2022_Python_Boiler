@@ -18,10 +18,34 @@ TO DO:
     Logisitics:
         Send Paul another Muse and possibly an arduino + light? 
 
-Old description:
-This is the menu that starts the spectrograph
-It allows the user to decide of file reading, simulation, or livestreaming from hardware.
-And to select the hardware they're using/emulation, as well as the file, arduino port, etc
+M todo
+order of events lets you try and fauil tomopen graph wo selecting com port
+need an autoselect com port #
+one dropdown for hardware (<-eden no likey)
+implement impedanece for all,not just cyton daisy
+can't open new window (eg graph window, session window etc) after closing previous one
+add support for non openbci hardware
+
+
+
+opens windows:
+graph window - shows live timeseries
+-potentially make it configurable
+- label on garph which line is which channel by chcking hardware
+impedance window
+-curently hacked together, obnly cyton daiusy
+-implement with other
+arduino
+-debug requires putting in 1
+-preset for neuorstimduino
+- need dosc for how to upd=load script to arduino using arduino ide, attach led
+- currently provides a way to turn led on arduino on and off on command
+baseline
+- basically like the oddball window
+- outputs eeg file in brainflow format
+- new plan: use pylsl sender to constantly grab brainflow and events and send them together, so ww can be sure of times
+
+
 
 '''
 
