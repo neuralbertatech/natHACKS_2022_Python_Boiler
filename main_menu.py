@@ -20,11 +20,13 @@ TO DO:
 
 M todo
 order of events lets you try and fauil tomopen graph wo selecting com port
-need an autoselect com port #
+need an autoselect com port # partly done - starts with COM3 but need to auto go thru
 one dropdown for hardware (<-eden no likey)
 implement impedanece for all,not just cyton daisy
-can't open new window (eg graph window, session window etc) after closing previous one
+DONE can't open new window (eg graph window, session window etc) after closing previous one
 add support for non openbci hardware
+add option to not import tensorflow
+in train model, has hard coded 16 channel # (fix)
 
 
 
@@ -38,13 +40,20 @@ impedance window
 arduino
 -debug requires putting in 1
 -preset for neuorstimduino
-- need dosc for how to upd=load script to arduino using arduino ide, attach led
+- need dosc for how to upload script to arduino using arduino ide, attach led
 - currently provides a way to turn led on arduino on and off on command
 baseline
 - basically like the oddball window
 - outputs eeg file in brainflow format
 - new plan: use pylsl sender to constantly grab brainflow and events and send them together, so ww can be sure of times
-
+saving
+- sqlite prob overkill
+- use numpy
+- later maybe add sqlite to use if run for long time
+remove unecessary windows
+- we don't need a model window with tensorflow to train a thing. this isn't koalacademy
+ADD SIMULATE AS HARDWARE OPTION
+make board id happen in menu window so not passing raw srtrings between windows
 
 
 '''
@@ -69,7 +78,8 @@ from model_window import model_win # animation fix needed
 # results not implemented yet
 from graph_window import graph_win
 
-import tensorflow as tf
+if False: # debugging... remebeber to put the tf imports back in session_window
+    import tensorflow as tf
 
 if sys.platform == 'win32':
     from arduino_windows import ard_wind_on as ard_turn_on
@@ -119,7 +129,7 @@ class MenuWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         ### DEBUG ###
-        self.debug = True
+        self.debug = False
 
         if self.debug == True:
             self.bci_serial_port = 'COM1'
@@ -162,7 +172,7 @@ class MenuWindow(QMainWindow):
         # drop down menu to decide what hardware
         self.hardware_dropdown = QComboBox()
         self.hardware_dropdown.setPlaceholderText('Select hardware')
-        self.hardware_dropdown.addItems(['openBCI'])
+        self.hardware_dropdown.addItems(['openBCI','Muse'])
         self.hardware_dropdown.activated.connect(self.handle_hardware_choice)
         self.hardware_label = QLabel('Select hardware')
         self.hardware_layout.addWidget(self.hardware_label)
@@ -208,6 +218,7 @@ class MenuWindow(QMainWindow):
         self.port_layout.addWidget(self.openbci_port)
         self.openbci_port.setPlaceholderText("Enter Port # (Integers Only)") 
         self.openbci_port.textEdited.connect(self.handle_bci_port)
+        self.bci_serial_port = 'COM3' # having a default value to save time
 
         ### ARDUINO ###
         self.arduino_label = QLabel("Arduino Settings")
@@ -373,6 +384,7 @@ class MenuWindow(QMainWindow):
         self.type_dropdown.setEnabled(True)
         self.type_dropdown.setCurrentIndex(-1)
         self.title.setText('Select data type')
+        
 
     def csv_name_changed(self):
         # this runs when the user hits enter on the text edit to set the name of the csv log file
@@ -394,10 +406,23 @@ class MenuWindow(QMainWindow):
         if self.data_type == 'Task live':
             self.title.setText('Select BCI Hardware Port')
             self.openbci_port.setEnabled(True)
+            if self.hardware == 'openBCI':
+                if self.model == 'Ganglion':
+                    self.board_id = 1
+                elif self.model == 'Cyton':
+                    self.board_id = 0
+                elif self.model == 'Cyton-Daisy':
+                    self.board_id = 2
+            elif self.hardware == 'Muse':
+                if self.model == 'Muse 2':
+                    self.board_id = 22
+                elif self.model == 'Muse S':
+                    self.board_id = 21
         elif self.data_type == 'Task simulate':
             self.baseline_window_button.setEnabled(True)
             self.impedance_window_button.setEnabled(True)
             self.title.setText('Check Impedance or Start Baseline')
+            self.board_id = -1
         
     def handle_bci_port(self):
         # check for correct value entering and enable type dropdown menu
@@ -471,6 +496,7 @@ class MenuWindow(QMainWindow):
         model = self.model, 
         data_type = self.data_type, 
         serial_port = self.bci_serial_port,
+        board_id = self.board_id
         )   
         self.impedance_window.show()
         self.is_impedance_window_open = True
@@ -508,6 +534,7 @@ class MenuWindow(QMainWindow):
             serial_port = self.bci_serial_port,
             arduino_con = self.arduino_con,
             arduino_port=self.arduino_serial_port,
+            board_id = self.board_id
             )
         self.session_window.show()
         self.is_session_window_open = True
@@ -520,7 +547,7 @@ class MenuWindow(QMainWindow):
             csv_name = self.csv_name, 
             parent = self,
             arduino_port=self.arduino_port.text(),
-            serial_port = self.bci_serial_port,
+            serial_port = self.bci_serial_port
             )
         self.session_window.show()
         self.is_session_window_open = True
@@ -530,8 +557,9 @@ class MenuWindow(QMainWindow):
         parent = self,
         hardware = self.hardware, 
         model = self.model, 
-        data_type = self.data_type, 
-        serial_port = self.bci_serial_port,
+        data_type = self.data_type,
+        board_id = self.board_id, 
+        serial_port = self.bci_serial_port, save_file = self.csv_name
         )   
         self.graph_window.show()
         self.is_graph_window_open = True

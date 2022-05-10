@@ -40,9 +40,9 @@ import sys
 from io import StringIO
 from scipy import signal, interpolate
 import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Dropout, Activation
-import tensorflow as tf
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Dense, Flatten, Dropout, Activation
+# import tensorflow as tf
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from statsmodels.tsa.ar_model import AutoReg
@@ -60,7 +60,8 @@ LIVESTREAM = 2
 
 class session_win(QWidget):
     def __init__(self, hardware = None, model = None, sim_type = None, \
-            data_type = None, csv_name = None, parent = None, serial_port = None, arduino_port = None, arduino_con = None, targ_limb = None):
+            data_type = None, csv_name = None, parent = None, serial_port = None, \
+                arduino_port = None, arduino_con = None, targ_limb = None, board_id = None):
         super().__init__()
 
         self.parent = parent
@@ -89,16 +90,19 @@ class session_win(QWidget):
 
         self.data = []
 
-        if self.data_type == 'Task live':
-            if self.hardware == 'openBCI':
-                if self.model == 'Ganglion':
-                    self.board_id = 1
-                elif self.model == 'Cyton':
-                    self.board_id = 0
-                elif self.model == 'Cyton-Daisy':
-                    self.board_id = 2
-        elif self.data_type == 'Task simulate':
-            self.board_id = -1
+        if board_id == None:
+            if self.data_type == 'Task live':
+                if self.hardware == 'openBCI':
+                    if self.model == 'Ganglion':
+                        self.board_id = 1
+                    elif self.model == 'Cyton':
+                        self.board_id = 0
+                    elif self.model == 'Cyton-Daisy':
+                        self.board_id = 2
+            elif self.data_type == 'Task simulate':
+                self.board_id = -1
+        else:
+            self.board_id = board_id
 
         self.setMinimumSize(600,600)
         self.setWindowIcon(QtGui.QIcon('utils/logo_icon.jpg'))

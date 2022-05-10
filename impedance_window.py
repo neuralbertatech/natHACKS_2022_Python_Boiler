@@ -24,6 +24,7 @@ import sys
 import time
 import csv
 import random
+import pdb
 
 from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
@@ -46,7 +47,7 @@ LIVESTREAM = 2
 
 class impedance_win(QWidget):
     def __init__(self, hardware = None, model = None, sim_type = None, \
-            data_type = None, serial_port = None, parent = None):
+            data_type = None, serial_port = None, parent = None, board_id = None):
         super().__init__()
 
         self.parent = parent
@@ -87,25 +88,26 @@ class impedance_win(QWidget):
 
         self.params = BrainFlowInputParams()
 
-        if data_type == 'Task live':
-            self.data_type = LIVESTREAM
-        elif data_type == 'Task simulate':
-            self.data_type = SIMULATE
+
+        # set board id based on parameters only if it wasn't given to us
+        if board_id == None:
+            if self.data_type == 'Task live':
+                if self.hardware == 'openBCI':
+                    if self.model == 'Ganglion':
+                        self.board_id = 1
+                    elif self.model == 'Cyton':
+                        self.board_id = 0
+                    elif self.model == 'Cyton-Daisy':
+                        self.board_id = 2
+                elif self.hardware == 'Muse':
+                    if self.model == 'Muse 2':
+                        self.board_id = 22
+                    elif self.model == 'Muse S':
+                        self.board_id = 21
+            elif self.data_type == 'Task simulate':
+                self.board_id = -1
         else:
-            raise Exception('Unknown data type: {} Try "Task live" or "Task simulate"'.format(data_type))
-
-        if self.data_type == LIVESTREAM:
-            if self.hardware == 'openBCI':
-                if self.model == 'Ganglion':
-                    self.board_id = 1
-                elif self.model == 'Cyton':
-                    self.board_id = 0
-                elif self.model == 'Cyton-Daisy':
-                    self.board_id = 2
-            self.params.serial_port = self.serial_port
-
-        elif self.data_type == SIMULATE:
-            self.board_id = -1
+            self.board_id = board_id
 
         # Brainflow Initialization
 
@@ -179,16 +181,38 @@ class impedance_win(QWidget):
 
         self.hardware_connected = True
 
-        # Think Pulse
-        self.board.config_board("x1040010Xx2040010Xx3040010Xx4040010Xx5040010Xx6040010Xx7040010Xx8040010XxQ040010XxW040010XxE040010XxR040010XxT040010XxY040010XxU040010XxI040010X")
-        # Reinitialize the 15/16 channel for EOG
-        # board.config_board("xU060100XxI060100X")
+        if self.board_id == 2:
+            # this is eden's cyton daisy stuff
+            # Think Pulse
+            self.board.config_board("x1040010Xx2040010Xx3040010Xx4040010Xx5040010Xx6040010Xx7040010Xx8040010XxQ040010XxW040010XxE040010XxR040010XxT040010XxY040010XxU040010XxI040010X")
+            # Reinitialize the 15/16 channel for EOG
+            # board.config_board("xU060100XxI060100X")
 
-        res = self.board.config_board("z110Zz210Zz310Zz410Zz510Zz610Zz710Zz810Zzq10Zzw10Zze10Zzr10Zzt10Zzy10Zzu10Zzi10Z")
-        print(res)
+            res = self.board.config_board("z110Zz210Zz310Zz410Zz510Zz610Zz710Zz810Zzq10Zzw10Zze10Zzr10Zzt10Zzy10Zzu10Zzi10Z")
+            print(res)
 
-        self.board.start_stream(45000, None)
-        self.impedances = [0] * self.chan_num
+            self.board.start_stream(45000, None)
+            self.impedances = [0] * self.chan_num
+        elif self.board_id == 1:
+            # ganglion impedances based on
+            # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
+            # expected result: 5 seconds of resistance data(unknown sampling rate) after that 5 seconds of exg data
+            self.board.config_board ('z')
+            self.board.start_stream (45000, None)
+            time.sleep (5)
+            self.board.config_board ('Z')
+            time.sleep (5)
+            data = self.board.get_board_data ()
+
+            pdb.set_trace()
+            self.board.stop_stream ()
+            self.board.release_session ()
+
+            print (data)
+            pdb.set_trace()\
+
+    resistance_channels = BoardShim.get_resistance_channels (BoardIds.GANGLION_BOARD.value)
+    print (resistance_channels)
 
     def closeEvent(self, event):
         # this code will autorun just before the window closes

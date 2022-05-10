@@ -61,13 +61,15 @@ LIVESTREAM = 2
 
 class graph_win(QWidget):
     def __init__(self, hardware = None, model = None, sim_type = None, \
-            data_type = None, serial_port = None, parent = None):
+            data_type = None, serial_port = None, save_file = None, parent = None, board_id = None):
         super().__init__()
         self.parent = parent
         self.sim_type = sim_type
         self.hardware = hardware
         self.model = model
         self.data_type = data_type
+        # save file should be an ok file name to save to with approriate ending ('.csv')
+        self.save_file = save_file
 
         # Brainflow Init
         self.params = BrainFlowInputParams()
@@ -80,16 +82,25 @@ class graph_win(QWidget):
 
         self.com_port = None
 
-        if self.data_type == 'Task live':
-            if self.hardware == 'openBCI':
-                if self.model == 'Ganglion':
-                    self.board_id = 1
-                elif self.model == 'Cyton':
-                    self.board_id = 0
-                elif self.model == 'Cyton-Daisy':
-                    self.board_id = 2
-        elif self.data_type == 'Task simulate':
-            self.board_id = -1
+        # set baord id based on parameters only if it wasn't given to us
+        if board_id == None:
+            if self.data_type == 'Task live':
+                if self.hardware == 'openBCI':
+                    if self.model == 'Ganglion':
+                        self.board_id = 1
+                    elif self.model == 'Cyton':
+                        self.board_id = 0
+                    elif self.model == 'Cyton-Daisy':
+                        self.board_id = 2
+                elif self.hardware == 'Muse':
+                    if self.model == 'Muse 2':
+                        self.board_id = 22
+                    elif self.model == 'Muse S':
+                        self.board_id = 21
+            elif self.data_type == 'Task simulate':
+                self.board_id = -1
+        else:
+            self.board_id = board_id
 
         self.board = BoardShim(self.board_id, self.params)
         self.board.prepare_session()
@@ -150,11 +161,14 @@ class graph_win(QWidget):
                                         FilterTypes.BUTTERWORTH.value, 0)
             self.curves[count].setData(data[channel].tolist())
         
-    '''
-    def on_end(self):
+    
+    def closeEvent(self,event):
+        self.timer.stop()
+        print('close event runs')
         self.board.stop_stream()
         self.board.release_session()
-    '''
+        self.close()
+    
 
 if __name__ == '__main__':    
     app = pg.mkQApp("MultiPlot Widget Example")
