@@ -218,7 +218,7 @@ class MenuWindow(QMainWindow):
         self.port_layout.addWidget(self.openbci_port)
         self.openbci_port.setPlaceholderText("Enter Port # (Integers Only)") 
         self.openbci_port.textEdited.connect(self.handle_bci_port)
-        self.bci_serial_port = 'COM3' # having a default value to save time
+        self.bci_serial_port = 'COM1' # having a default value to save time
 
         ### ARDUINO ###
         self.arduino_label = QLabel("Arduino Settings")

@@ -24,6 +24,7 @@ import sys
 import time
 import csv
 import random
+import pdb
 
 from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
@@ -52,6 +53,7 @@ from multiprocessing import Process, Queue
 
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes, DetrendOperations
+import brainflow
 
 SIMULATE = 0
 FILE = 1
@@ -75,12 +77,9 @@ class graph_win(QWidget):
         self.params = BrainFlowInputParams()
         self.params.serial_port = serial_port
 
-        self.data = []
 
         if self.parent.debug == True:
             BoardShim.enable_dev_board_logger()
-
-        self.com_port = None
 
         # set baord id based on parameters only if it wasn't given to us
         if board_id == None:
@@ -102,8 +101,18 @@ class graph_win(QWidget):
         else:
             self.board_id = board_id
 
-        self.board = BoardShim(self.board_id, self.params)
-        self.board.prepare_session()
+
+        for i in range(10):
+            self.params.serial_port = 'COM'+str(i)
+            self.board = BoardShim(self.board_id, self.params)
+            try:
+                self.board.prepare_session()
+            except brainflow.board_shim.BrainFlowError as e:
+                pass
+            else:
+                # didn't have the bad com port exeption
+                break
+
         print('init hardware is running with hardware',self.hardware,'model',self.model)
         self.board.start_stream()
         self.hardware_connected = True
@@ -115,6 +124,17 @@ class graph_win(QWidget):
         self.num_points = self.window_size * self.sampling_rate
 
         self.chan_num = len(self.exg_channels)
+        self.exg_channels = np.array(self.exg_channels)
+
+        # set up stuff to save our data
+        # just a numpy array for now
+        # 10 minutes of data
+        # init a cursor to keep track of where we are in the data
+        self.data_max_len = self.sampling_rate*600
+        self.data = np.zeros((self.data_max_len,self.chan_num))
+        self.cur_line = 0
+        
+
 
         self.graphWidget = pg.GraphicsLayoutWidget()
 
@@ -148,6 +168,19 @@ class graph_win(QWidget):
 
     def update(self):
         data = self.board.get_current_board_data(self.num_points)
+        # note that the data objectwill porbably contain lots of dattathat isn't eeg
+        # how much and what it is depends on the board. exg_channels contains the key for
+        # what is and isn't eeg. We will ignore non eeg and not save it
+        data_len = data.shape[1]
+        if data_len + self.cur_line >= self.data_max_len:
+            # we need to roll over and start at the beginning of the file
+            self.data[self.cur_line:self.data_max_len,:] = data[self.exg_channels,:self.data_max_len-self.cur_line].T
+            self.data[0:self.data_len-(self.data_max_len-self.cur_line),:] = data[self.exg_channels,self.data_max_len-self.cur_line:].T
+            self.cur_line = self.data_len-(self.data_max_len-self.cur_line)
+        else:
+            self.data[self.cur_line:self.cur_line+data.shape[1],:] = data[self.exg_channels,:].T
+        self.cur_line = self.cur_line + data.shape[1]
+
         for count, channel in enumerate(self.exg_channels):
             # plot timeseries
             DataFilter.detrend(data[channel], DetrendOperations.CONSTANT.value)
@@ -167,7 +200,10 @@ class graph_win(QWidget):
         print('close event runs')
         self.board.stop_stream()
         self.board.release_session()
+        print(self.data.shape)
+        print(self.data)
         self.close()
+
     
 
 if __name__ == '__main__':    
