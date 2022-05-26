@@ -197,10 +197,10 @@ class MenuWindow(QMainWindow):
         ### CSV ###
         self.csv_name_edit = QLineEdit('eeg_log_file.csv')
         self.csv_name_edit.returnPressed.connect(self.csv_name_changed)
-        self.csv_name = 'eeg_log_file.csv'
-        self.csv_label = QLabel("Prefix of session's CSV file")
+        self.csv_label = QLabel("Prefix of session's CSV file.\nHit 'Enter' to update filename.")
         self.csv_layout.addWidget(self.csv_label)
         self.csv_layout.addWidget(self.csv_name_edit)
+
 
         ### DATATYPE ###
         # drop down menu for simulate or live (previously included file step through)
@@ -561,6 +561,7 @@ class MenuWindow(QMainWindow):
     def open_graph_window(self):
         icon = "Warning"
         title = "Error"
+
         if self.hardware is None:
             showMessageBox(
                 title, 
@@ -591,6 +592,8 @@ class MenuWindow(QMainWindow):
                 "Serial Port attribute is not set. Please fix before running graph.",
                 icon,
             )
+
+            # TODO: Check if simulation file exists, alert if not true
         elif self.data_type == "Task simulate" and self.csv_name is None:
             showMessageBox(
                 title,
@@ -610,7 +613,7 @@ class MenuWindow(QMainWindow):
             self.graph_window.show()
             self.is_graph_window_open = True
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     app = QApplication(sys.argv)    
     win = MenuWindow() 
     win.show() 
