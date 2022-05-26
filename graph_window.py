@@ -80,8 +80,6 @@ class graph_win(QWidget):
         if self.parent.debug == True:
             BoardShim.enable_dev_board_logger()
 
-        self.com_port = None
-
         # set baord id based on parameters only if it wasn't given to us
         if board_id == None:
             if self.data_type == 'Task live':
