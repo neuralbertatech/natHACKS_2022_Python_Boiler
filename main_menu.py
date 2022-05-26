@@ -64,6 +64,7 @@ from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
 from PyQt5 import QtCore, Qt
 from PyQt5.QtWidgets import *
+from alert_box import showMessageBox
 
 import numpy as np
 import random
@@ -161,6 +162,11 @@ class MenuWindow(QMainWindow):
         |                                           |
         |-------------------------------------------|
         '''
+
+        self.hardware = None
+        self.model = None
+        self.data_type = None
+        self.board_id = None
         
         ### TITLE ###
         self.title = QLabel()
@@ -192,7 +198,7 @@ class MenuWindow(QMainWindow):
         self.csv_name_edit = QLineEdit('eeg_log_file.csv')
         self.csv_name_edit.returnPressed.connect(self.csv_name_changed)
         self.csv_name = 'eeg_log_file.csv'
-        self.csv_label = QLabel('CSV name to save to')
+        self.csv_label = QLabel("Prefix of session's CSV file")
         self.csv_layout.addWidget(self.csv_label)
         self.csv_layout.addWidget(self.csv_name_edit)
 
@@ -310,19 +316,19 @@ class MenuWindow(QMainWindow):
         else:
             self.session_window_button.setEnabled(False)
         self.layout.addWidget(self.session_window_button,5,1, 1, -1, QtCore.Qt.AlignHCenter)
-        self.session_window_button.clicked.connect(self.open_session_window) # IMPLEMENT THIS FUNCTION
+        self.session_window_button.clicked.connect(self.open_session_window)
 
         # here is a button to display results of the session
         self.results_window_button = QPushButton('Results')
         self.results_window_button.setEnabled(False)
         self.layout.addWidget(self.results_window_button,6,1, 1, -1, QtCore.Qt.AlignHCenter)
-        self.results_window_button.clicked.connect(self.open_results_window) # IMPLEMENT THIS FUNCTION
+        self.results_window_button.clicked.connect(self.open_results_window)
 
         # here is a button to display graph
         self.graph_window_button = QPushButton('Graph')
         self.graph_window_button.setEnabled(True)
         self.layout.addWidget(self.graph_window_button,7,0, 1, -1, QtCore.Qt.AlignHCenter)
-        self.graph_window_button.clicked.connect(self.open_graph_window) # IMPLEMENT THIS FUNCTION
+        self.graph_window_button.clicked.connect(self.open_graph_window)
 
         # this is a variable to show whether we have a data window open
         self.data_window_open = False
@@ -553,16 +559,56 @@ class MenuWindow(QMainWindow):
         self.is_session_window_open = True
 
     def open_graph_window(self):
-        self.graph_window = graph_win(
-        parent = self,
-        hardware = self.hardware, 
-        model = self.model, 
-        data_type = self.data_type,
-        board_id = self.board_id, 
-        serial_port = self.bci_serial_port, save_file = self.csv_name
-        )   
-        self.graph_window.show()
-        self.is_graph_window_open = True
+        icon = "Warning"
+        title = "Error"
+        if self.hardware is None:
+            showMessageBox(
+                title, 
+                "Hardware attribute is not set. Please fix before running graph.",
+                icon
+            )
+        elif self.model is None:
+            showMessageBox(
+                title,
+                "Model attribute is not set. Please fix before running graph.",
+                icon,
+            )
+        elif self.data_type is None:
+            showMessageBox(
+                title,
+                "Model attribute is not set. Please fix before running graph.",
+                icon,
+            )
+        elif self.board_id is None:
+            showMessageBox(
+                title,
+                "Model attribute is not set. Please fix before running graph.",
+                icon,
+            )
+        elif self.bci_serial_port is None:
+            showMessageBox(
+                title,
+                "Serial Port attribute is not set. Please fix before running graph.",
+                icon,
+            )
+        elif self.data_type == "Task simulate" and self.csv_name is None:
+            showMessageBox(
+                title,
+                "CSV file to read for simulation is not provided. Please fix before running graph.",
+                icon,
+            )
+        else:
+            self.graph_window = graph_win(
+                parent = self,
+                hardware = self.hardware, 
+                model = self.model, 
+                data_type = self.data_type,
+                board_id = self.board_id, 
+                serial_port = self.bci_serial_port,
+                save_file = self.csv_name
+            )   
+            self.graph_window.show()
+            self.is_graph_window_open = True
 
 if __name__ == '__main__':    
     app = QApplication(sys.argv)    

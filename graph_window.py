@@ -175,8 +175,8 @@ class graph_win(QWidget):
         if data_len + self.cur_line >= self.data_max_len:
             # we need to roll over and start at the beginning of the file
             self.data[self.cur_line:self.data_max_len,:] = data[self.exg_channels,:self.data_max_len-self.cur_line].T
-            self.data[0:self.data_len-(self.data_max_len-self.cur_line),:] = data[self.exg_channels,self.data_max_len-self.cur_line:].T
-            self.cur_line = self.data_len-(self.data_max_len-self.cur_line)
+            self.data[0:data_len-(self.data_max_len-self.cur_line),:] = data[self.exg_channels,self.data_max_len-self.cur_line:].T
+            self.cur_line = data_len-(self.data_max_len-self.cur_line)
         else:
             self.data[self.cur_line:self.cur_line+data.shape[1],:] = data[self.exg_channels,:].T
         self.cur_line = self.cur_line + data.shape[1]
