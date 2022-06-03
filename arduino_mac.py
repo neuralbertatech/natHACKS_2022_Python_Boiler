@@ -1,4 +1,4 @@
-'''
+"""
 This is the oddball task
 - it displays either a blue or green circle and records when user hits space
 it pumps data about what happens when to an lsl stream
@@ -14,7 +14,7 @@ It contains partially complete code to graph ERP afterwards.
 The data is stored with tines normalized (timestamp 0 when stim first displayed, for each trial)
 so setting up an ERP graph should be reasonably simple
 Project ideas: any project where the user sees something displayed and interacts with it, while eeg is recorded
-'''
+"""
 
 import sys
 import time
@@ -35,50 +35,53 @@ import asyncio
 import platform
 import ast
 
-#use bleak version 0.1.12 for mac
+# use bleak version 0.1.12 for mac
 
-#import CoreBluetooth
+# import CoreBluetooth
 from bleak import BleakClient
 from bleak import BleakScanner
 from bleak import discover
 
 
 class ard_mac_on(QWidget):
-    def __init__(self, parent = None,  arduino_port = None):
+    def __init__(self, parent=None, arduino_port=None):
         super().__init__()
 
         self.parent = parent
         self.arduino_port = arduino_port
 
+        self.setMinimumSize(600, 600)
+        self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
 
-        self.setMinimumSize(600,600)
-        self.setWindowIcon(QtGui.QIcon('utils/logo_icon.jpg'))
-    
         # setting window title
-        self.setWindowTitle('Arduino Testing Window')
-        
+        self.setWindowTitle("Arduino Testing Window")
+
         # init layout
         self.layout = QGridLayout()
         self.setLayout(self.layout)
-        self.layout.setContentsMargins(100,100,100,100)
+        self.layout.setContentsMargins(100, 100, 100, 100)
         self.label = QLabel()
-        self.label.setFont(QtGui.QFont('Arial',14))
-        self.label.setText('This is a placeholer window to test the arduino function and turn it on and off')
+        self.label.setFont(QtGui.QFont("Arial", 14))
+        self.label.setText(
+            "This is a placeholder window to test the arduino function and turn it on and off"
+        )
         self.layout.addWidget(self.label)
         self.info = QLabel()
-        self.info.setFont(QtGui.QFont('Arial',14))
-        self.info.setText("The following serial port has been selected: "+str(self.arduino_port))
+        self.info.setFont(QtGui.QFont("Arial", 14))
+        self.info.setText(
+            "The following serial port has been selected: " + str(self.arduino_port)
+        )
         self.layout.addWidget(self.info)
 
         # set up a button to activate / deactivate the arduino
-        self.arduino_button = QPushButton('Activate Arduino')
+        self.arduino_button = QPushButton("Activate Arduino")
         self.arduino_button.setEnabled(True)
-        self.layout.addWidget(self.arduino_button,4,0, 1, -1, QtCore.Qt.AlignHCenter)
+        self.layout.addWidget(self.arduino_button, 4, 0, 1, -1, QtCore.Qt.AlignHCenter)
         self.arduino_button.clicked.connect(self.activate_arduino)
 
         # This values was randomly generated - it must match between the Central and Peripheral devices
         # Any changes you make here must be suitably made in the Arduino program as well
-        self.TDCS_UUID = '00001101-0000-1000-8000-00805f9b34fb'
+        self.TDCS_UUID = "00001101-0000-1000-8000-00805f9b34fb"
 
         self.on_value = bytearray([0x01])
         self.off_value = bytearray([0x00])
@@ -86,14 +89,14 @@ class ard_mac_on(QWidget):
         self.TDCS = False
 
     def activate_arduino(self):
-        if self.arduino_button.text() == 'Activate Arduino':
-            self.arduino_button.setText('Deactivate Arduino')
+        if self.arduino_button.text() == "Activate Arduino":
+            self.arduino_button.setText("Deactivate Arduino")
         else:
-            self.arduino_button.setText('Activate Arduino')
+            self.arduino_button.setText("Activate Arduino")
 
-if __name__ == '__main__':    
-    app = QApplication(sys.argv)    
-    win = ard_turn_on() 
-    win.show() 
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    win = ard_turn_on()
+    win.show()
     sys.exit(app.exec())
-
