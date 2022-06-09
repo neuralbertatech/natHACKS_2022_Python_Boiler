@@ -1,22 +1,9 @@
 """
-This is the oddball task
-- it displays either a blue or green circle and records when user hits space
-it pumps data about what happens when to an lsl stream
-it also receive eeg data from a muse, or simulates it
-This data is recorder along with events
-
-EVENT KEY:
-0 - Begin trial
-1 - normal color displayed (blue)
-2 - oddball color displayed (green)
-3 - user pressed space
-11 - end trial
-
-It contains partially complete code to graph ERP afterwards.
-The data is stored with tines normalized (timestamp 0 when stim first displayed, for each trial)
-so setting up an ERP graph should be reasonably simple
-
-Project ideas: any project where the user sees something displayed and interacts with it, while eeg is recorded
+This is the impedance window
+it checks impedances, of some openbci hardware
+ References:
+ https://eeghacker.blogspot.com/2014/04/impedance-of-electrodes-on-my-head.html
+ https://openbci.com/community/openbci-measuring-electrode-impedance/
 
 """
 
@@ -229,6 +216,7 @@ class impedance_win(QWidget):
 
             self.board.start_stream(45000, None)
             self.impedances = [0] * self.chan_num
+
         elif self.board_id == 1:
             # ganglion impedances based on
             # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
@@ -240,17 +228,13 @@ class impedance_win(QWidget):
             time.sleep(5)
             data = self.board.get_board_data()
 
-            pdb.set_trace()
-            self.board.stop_stream()
-            self.board.release_session()
+            self.board.stop_stream ()
+            self.board.release_session ()
 
-            print(data)
-            pdb.set_trace()
+            print (data)
 
-    resistance_channels = BoardShim.get_resistance_channels(
-        BoardIds.GANGLION_BOARD.value
-    )
-    print(resistance_channels)
+            resistance_channels = BoardShim.get_resistance_channels (BoardIds.GANGLION_BOARD.value)
+            print (resistance_channels)
 
     def closeEvent(self, event):
         # this code will autorun just before the window closes
@@ -258,13 +242,6 @@ class impedance_win(QWidget):
         print("close event works")
         self.on_end()
 
-    def on_end(self):
-        # called by end timer
-        # self.stop_data_stream()
-        # if self.is_end == False:
-
-        self.board.stop_stream()
-        self.board.release_session()
 
     def loop_start(self):
         print("starting loop")
@@ -283,6 +260,7 @@ class impedance_win(QWidget):
     #     self.loop_timer.start(1000)
 
     def start_iteration(self):
+        # called by hitting enter
         if not self.finished:
             time.sleep(1)
             self.data = (
@@ -293,10 +271,11 @@ class impedance_win(QWidget):
                 # but this isn't fft - so wtf
                 self.filter_custom(i)
                 # print(len(self.data[i,:]))
-                chan_std_uV = stats.stdev(self.data[i, :])
-                self.impedances[i] = (
-                    (stats.sqrt(2.0) * (chan_std_uV) * 1.0e-6) / 6.0e-9 - 2200
-                ) / 1000
+                # current is togging on and off at 31.5 hz (maybe)
+                # so observed voltage should be a sine wave. ideally, we would find its amplitude but I'm lazy
+                # use stdev as proxy.
+                chan_std_uV = stats.stdev(self.data[i,:])
+                self.impedances[i] = ((stats.sqrt( 2.0 ) * (chan_std_uV) * 1.0e-6) / 6.0e-9 - 2200)/1000
             print(self.impedances)
             """
             HERE

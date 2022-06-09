@@ -20,10 +20,9 @@ TO DO:
 
 M todo
 order of events lets you try and fauil tomopen graph wo selecting com port
-need an autoselect com port # partly done - starts with COM3 but need to auto go thru
 one dropdown for hardware (<-eden no likey)
 implement impedanece for all,not just cyton daisy
-DONE can't open new window (eg graph window, session window etc) after closing previous one
+
 add support for non openbci hardware
 add option to not import tensorflow
 in train model, has hard coded 16 channel # (fix)
@@ -72,10 +71,9 @@ import time
 import os
 
 # from spectrograph import spectrograph_gui
-from baseline_window import baseline_win
+
 from impedance_window import impedance_win
-from session_window import session_win
-from model_window import model_win  # animation fix needed
+
 
 # results not implemented yet
 from graph_window import graph_win
@@ -117,8 +115,9 @@ class MenuWindow(QMainWindow):
 
         """
 
-        self.setMinimumSize(900, 900)
+        self.setMinimumSize(900, 950)
 
+        
         # self.setStyleSheet("background-color: gray;")
         # setting window title and icon
         self.setWindowTitle("PyQt5 Menu")
@@ -151,7 +150,6 @@ class MenuWindow(QMainWindow):
         self.port_layout = QVBoxLayout()
         self.csv_layout = QVBoxLayout()
         self.arduino_layout = QVBoxLayout()
-        self.limb_layout = QVBoxLayout()
 
         """
         |------------------INPUTS-------------------|    
@@ -159,7 +157,6 @@ class MenuWindow(QMainWindow):
         |       HARDWARE              TYPE          |
         |       MODEL                 PORT          |
         |       CSV                   ARDUINO       |
-        |                   LIMB*                   |
         |                                           |
         |-------------------------------------------|
         """
@@ -194,7 +191,6 @@ class MenuWindow(QMainWindow):
         self.model_dropdown.activated.connect(self.handle_model_choice)
         self.model_layout.addWidget(self.model_label)
         self.model_layout.addWidget(self.model_dropdown)
-
         ### CSV ###
         self.csv_name_edit = QLineEdit("eeg_log_file.csv")
         self.csv_name_edit.returnPressed.connect(self.csv_name_changed)
@@ -226,7 +222,7 @@ class MenuWindow(QMainWindow):
         self.port_layout.addWidget(self.openbci_port)
         self.openbci_port.setPlaceholderText("Enter Port # (Integers Only)")
         self.openbci_port.textEdited.connect(self.handle_bci_port)
-        self.bci_serial_port = "COM1"  # having a default value to save time
+        self.bci_serial_port = None  # if None gets passed to the graph window, it will look for a working port
 
         ### ARDUINO ###
         self.arduino_label = QLabel("Arduino Settings")
@@ -243,18 +239,6 @@ class MenuWindow(QMainWindow):
         self.arduino_layout.addWidget(self.arduino_port)
         # self.arduino_process = None
 
-        ### LIMB ###
-        self.limb_sub_layout = QHBoxLayout()
-        self.limb_label = QLabel("Which arm is the target?")
-        self.limb_rbtn1 = QRadioButton("Left Arm")
-        self.limb_rbtn2 = QRadioButton("Right Arm")
-        self.limb_rbtn1.toggled.connect(self.onClicked)
-        self.limb_rbtn2.toggled.connect(self.onClicked)
-        self.limb_sub_layout.addWidget(self.limb_rbtn1)
-        self.limb_sub_layout.addWidget(self.limb_rbtn2)
-        self.limb_layout.addWidget(self.limb_label)
-        self.limb_layout.addLayout(self.limb_sub_layout)
-
         ### ADD INPUT SUBLAYOUTS TO MAIN ###
         self.layout.setContentsMargins(100, 100, 100, 100)
         self.hardware_layout.setContentsMargins(50, 50, 50, 50)
@@ -263,7 +247,6 @@ class MenuWindow(QMainWindow):
         self.type_layout.setContentsMargins(50, 50, 50, 50)
         self.port_layout.setContentsMargins(50, 50, 50, 50)
         self.arduino_layout.setContentsMargins(50, 50, 50, 15)
-        self.limb_layout.setContentsMargins(50, 15, 50, 25)
         self.layout.addLayout(self.title_layout, 0, 0, 1, -1, QtCore.Qt.AlignHCenter)
         self.layout.addLayout(self.hardware_layout, 1, 0)
         self.layout.addLayout(self.model_layout, 2, 0)
@@ -271,7 +254,6 @@ class MenuWindow(QMainWindow):
         self.layout.addLayout(self.type_layout, 1, 1)
         self.layout.addLayout(self.port_layout, 2, 1)
         self.layout.addLayout(self.arduino_layout, 3, 1)
-        self.layout.addLayout(self.limb_layout, 4, 0, 1, -1, QtCore.Qt.AlignHCenter)
 
         ####################################
         ##### Init GUI Action Elements #####
@@ -280,9 +262,7 @@ class MenuWindow(QMainWindow):
         """
         |------------------ACTIONS------------------|
         |                                           |
-        |    IMPED       BASELINE        SESSION    |
-        |    ARDUINO     MODEL           RESULTS    |
-        |                GRAPH                      |
+        |    arduino       graph        imped       |
         |-------------------------------------------|
         """
 
@@ -290,7 +270,7 @@ class MenuWindow(QMainWindow):
         self.impedance_window_button = QPushButton("Impedance Check")
         self.impedance_window_button.setEnabled(False)
         self.layout.addWidget(
-            self.impedance_window_button, 5, 0, 1, 1, QtCore.Qt.AlignHCenter
+            self.impedance_window_button, 5, 1, 1, 1, QtCore.Qt.AlignHCenter
         )
         self.impedance_window_button.clicked.connect(self.open_impedance_window)
 
@@ -298,53 +278,17 @@ class MenuWindow(QMainWindow):
         self.arduino_window_button = QPushButton("Turn on Arduino")
         self.arduino_window_button.setEnabled(False)
         self.layout.addWidget(
-            self.arduino_window_button, 6, 0, 1, 1, QtCore.Qt.AlignHCenter
+            self.arduino_window_button, 5, 0, 1, 1, QtCore.Qt.AlignHCenter
         )
         self.arduino_window_button.clicked.connect(
             self.open_arduino_window
-        )  # IMPLEMENT THIS FUNCTION
-
-        # here is a button to actually start a data window
-        self.baseline_window_button = QPushButton("Start Baseline")
-        self.baseline_window_button.setEnabled(False)
-        self.layout.addWidget(
-            self.baseline_window_button, 5, 0, 1, -1, QtCore.Qt.AlignHCenter
         )
-        self.baseline_window_button.clicked.connect(self.open_baseline_window)
-
-        # here is a button to train the model
-        self.model_window_button = QPushButton("Train Model")
-        ##########################################################
-        self.model_window_button.setEnabled(True)  # set to false for deployment
-        self.layout.addWidget(
-            self.model_window_button, 6, 0, 1, -1, QtCore.Qt.AlignHCenter
-        )
-        self.model_window_button.clicked.connect(self.open_model_window)
-
-        # here is a button to start the session
-        self.session_window_button = QPushButton("Start Session")
-        if self.debug == True:
-            self.session_window_button.setEnabled(True)
-        else:
-            self.session_window_button.setEnabled(False)
-        self.layout.addWidget(
-            self.session_window_button, 5, 1, 1, -1, QtCore.Qt.AlignHCenter
-        )
-        self.session_window_button.clicked.connect(self.open_session_window)
-
-        # here is a button to display results of the session
-        self.results_window_button = QPushButton("Results")
-        self.results_window_button.setEnabled(False)
-        self.layout.addWidget(
-            self.results_window_button, 6, 1, 1, -1, QtCore.Qt.AlignHCenter
-        )
-        self.results_window_button.clicked.connect(self.open_results_window)
 
         # here is a button to display graph
         self.graph_window_button = QPushButton("Graph")
         self.graph_window_button.setEnabled(True)
         self.layout.addWidget(
-            self.graph_window_button, 7, 0, 1, -1, QtCore.Qt.AlignHCenter
+            self.graph_window_button, 5, 0, 1, -1, QtCore.Qt.AlignHCenter
         )
         self.graph_window_button.clicked.connect(self.open_graph_window)
 
@@ -357,30 +301,17 @@ class MenuWindow(QMainWindow):
         # init variable for saving temp csv name
         self.csv_name = None
 
-        # init variables for model
-        self.ml_model = None
-
         # targ limb
         self.targ_limb = None
 
-        if self.debug == True:
-            self.hardware = "openBCI"
-            self.model = "Cyton-Daisy"
-            self.data_type = "Task simulate"
-            self.targ_limb = 1
-            self.arduino_con = "Debug"
-            self.arduino_serial_port = "COM1"
-            self.csv_name = "eeg_log_file_1639676920"
-            self.ml_model = tf.keras.models.load_model(
-                "saved_models/{}_model".format(self.csv_name)
-            )
-            # self.ml_model = tf.keras.models.load_model('saved_model/my_model')
 
     def closeEvent(self, event):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
         if self.data_window_open:
             self.data_window.close()
+        if self.impedance_window_open:
+            self.impedance_window.close()
         event.accept()
 
     #########################################
@@ -481,14 +412,6 @@ class MenuWindow(QMainWindow):
         else:
             self.arduino_window_button.setEnabled(False)
 
-    def onClicked(self):
-        radioBtn = self.sender()
-        if radioBtn.isChecked():
-            if radioBtn.text() == "Left Arm":
-                self.targ_limb = 1
-        elif radioBtn.text() == "Right Arm":
-            self.targ_limb = 2
-
     #########################################
     ##### Functions for Opening Windows #####
     #########################################
@@ -524,58 +447,7 @@ class MenuWindow(QMainWindow):
             board_id=self.board_id,
         )
         self.impedance_window.show()
-        self.is_impedance_window_open = True
-
-    def open_baseline_window(self):
-        self.data_window = baseline_win(
-            hardware=self.hardware,
-            model=self.model,
-            data_type=self.data_type,
-            csv_name=self.csv_name,
-            parent=self,
-            serial_port=self.bci_serial_port,
-        )
-        self.data_window.show()
-        self.is_data_window_open = True
-
-    def open_model_window(self):
-        self.impedance_window = model_win(
-            parent=self,
-            hardware=self.hardware,
-            model=self.model,
-            targ_limb=self.targ_limb,
-        )
-        self.impedance_window.show()
-        self.is_impedance_window_open = True
-
-    def open_session_window(self):
-        self.session_window = session_win(
-            hardware=self.hardware,
-            model=self.model,
-            targ_limb=self.targ_limb,
-            data_type=self.data_type,
-            csv_name=self.csv_name,
-            parent=self,
-            serial_port=self.bci_serial_port,
-            arduino_con=self.arduino_con,
-            arduino_port=self.arduino_serial_port,
-            board_id=self.board_id,
-        )
-        self.session_window.show()
-        self.is_session_window_open = True
-
-    def open_results_window(self):
-        self.session_window = session_win(
-            hardware=self.hardware,
-            model=self.model,
-            data_type=self.data_type,
-            csv_name=self.csv_name,
-            parent=self,
-            arduino_port=self.arduino_port.text(),
-            serial_port=self.bci_serial_port,
-        )
-        self.session_window.show()
-        self.is_session_window_open = True
+        self.impedance_window_open = True
 
     def open_graph_window(self):
         icon = "Warning"
@@ -603,12 +475,6 @@ class MenuWindow(QMainWindow):
             showMessageBox(
                 title,
                 "Model attribute is not set. Please fix before running graph.",
-                icon,
-            )
-        elif self.bci_serial_port is None:
-            showMessageBox(
-                title,
-                "Serial Port attribute is not set. Please fix before running graph.",
                 icon,
             )
 

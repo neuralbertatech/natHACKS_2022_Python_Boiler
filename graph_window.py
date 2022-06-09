@@ -1,23 +1,5 @@
 """
-This is the oddball task
-- it displays either a blue or green circle and records when user hits space
-it pumps data about what happens when to an lsl stream
-it also receive eeg data from a muse, or simulates it
-This data is recorder along with events
-
-EVENT KEY:
-0 - Begin trial
-1 - normal color displayed (blue)
-2 - oddball color displayed (green)
-3 - user pressed space
-11 - end trial
-
-It contains partially complete code to graph ERP afterwards.
-The data is stored with tines normalized (timestamp 0 when stim first displayed, for each trial)
-so setting up an ERP graph should be reasonably simple
-
-Project ideas: any project where the user sees something displayed and interacts with it, while eeg is recorded
-
+This graphs EEG data, live. 
 """
 
 import sys
@@ -111,16 +93,21 @@ class graph_win(QWidget):
         else:
             self.board_id = board_id
 
-        for i in range(10):
-            self.params.serial_port = "COM" + str(i)
+
+        if self.params.serial_port == None:
+            for i in range(10):
+                self.params.serial_port = 'COM'+str(i)
+                self.board = BoardShim(self.board_id, self.params)
+                try:
+                    self.board.prepare_session()
+                except brainflow.board_shim.BrainFlowError as e:
+                    pass
+                else:
+                    # didn't have the bad com port exeption
+                    break
+        else:
             self.board = BoardShim(self.board_id, self.params)
-            try:
-                self.board.prepare_session()
-            except brainflow.board_shim.BrainFlowError as e:
-                pass
-            else:
-                # didn't have the bad com port exeption
-                break
+            self.board.prepare_session()
 
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
