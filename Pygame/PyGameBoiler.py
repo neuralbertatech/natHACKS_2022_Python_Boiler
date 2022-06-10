@@ -8,6 +8,7 @@ import matplotlib
 import time
 
 from Board import CYTON, CYTON_DAISY
+
 matplotlib.use("Agg")
 import random
 from Sprites import *
@@ -19,16 +20,17 @@ PLOT1 = 1
 PLOT2 = 2
 
 GREEN = (0, 255, 0)
-RED =   (255, 0, 0)
+RED = (255, 0, 0)
 
 LEFT_CLICK = 0
 RANDOM = 1
 
-SCALE_FACTOR_EEG = (4500000)/24/(2**23-1) #uV/count
+SCALE_FACTOR_EEG = (4500000) / 24 / (2**23 - 1)  # uV/count
 SCALE_FACTOR_AUX = 0.002 / (2**4)
 
 
 BACKGROUND_COLOR = (0, 150, 250)
+
 
 class MuseInterface:
     def __init__(self):
@@ -51,11 +53,12 @@ class MuseInterface:
 
         self.input_file = None
         self.output_filename = "PyGame_" + str(int(time.time())) + ".csv"
-        with open(self.output_filename, mode='a',newline = '') as file:
-            fwriter = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            fwriter.writerow(["\"eeg"+str(i)+"\"" for i in range(4)])
+        with open(self.output_filename, mode="a", newline="") as file:
+            fwriter = csv.writer(
+                file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+            )
+            fwriter.writerow(['"eeg' + str(i) + '"' for i in range(4)])
 
-        
         self.outlet_eeg = None
         self.outlet_aux = None
 
@@ -68,51 +71,100 @@ class MuseInterface:
         background = pg.Surface(self.screen.get_size())
         self.background = background.convert()
         self.background.fill((250, 250, 250))
-        
-        # defining a font
-        self.smallfont = pg.font.SysFont('Corbel', 25)
 
-        self.dropdown_main = DropDown(0, 0, 100, 40, pg.font.SysFont("Corbel", 18), "Select Mode", [FILE, SIMULATE, CONNECT])
-        self.dropdown_connect_hardware = DropDown(125, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [MUSE, BCI])
-        self.dropdown_connect_model_muse = DropDown(375, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [MUSE_2, MUSE_S])
-        self.dropdown_connect_model_bci = DropDown(375, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [CYTON, CYTON_DAISY, GANGLION])
-        self.dropdown_connect_model_default = DropDown(350, 100, 150, 40, pg.font.SysFont("Corbel", 15), "<- Select Mode First!", [])
+        # defining a font
+        self.smallfont = pg.font.SysFont("Corbel", 25)
+
+        self.dropdown_main = DropDown(
+            0,
+            0,
+            100,
+            40,
+            pg.font.SysFont("Corbel", 18),
+            "Select Mode",
+            [FILE, SIMULATE, CONNECT],
+        )
+        self.dropdown_connect_hardware = DropDown(
+            125,
+            100,
+            100,
+            40,
+            pg.font.SysFont("Corbel", 15),
+            "Select Device",
+            [MUSE, BCI],
+        )
+        self.dropdown_connect_model_muse = DropDown(
+            375,
+            100,
+            100,
+            40,
+            pg.font.SysFont("Corbel", 15),
+            "Select Device",
+            [MUSE_2, MUSE_S],
+        )
+        self.dropdown_connect_model_bci = DropDown(
+            375,
+            100,
+            100,
+            40,
+            pg.font.SysFont("Corbel", 15),
+            "Select Device",
+            [CYTON, CYTON_DAISY, GANGLION],
+        )
+        self.dropdown_connect_model_default = DropDown(
+            350,
+            100,
+            150,
+            40,
+            pg.font.SysFont("Corbel", 15),
+            "<- Select Mode First!",
+            [],
+        )
 
         self.clock = pg.time.Clock()
 
         # white color
-        self.color = (255,255,255)
-        
+        self.color = (255, 255, 255)
+
         # light shade of the button
-        self.color_light = (170,170,170)
-        
+        self.color_light = (170, 170, 170)
+
         # dark shade of the button
-        self.color_dark = (100,100,100)
-        
+        self.color_dark = (100, 100, 100)
+
         # stores the width of the
         # screen into a variable
         self.width = self.screen.get_width()
-        
+
         # stores the height of the
         # screen into a variable
         self.height = self.screen.get_height()
-        
+
         # Create hardcoded text objects
-        self.exitText = self.smallfont.render('Quit' , True , self.color)
-        self.plot1Text = self.smallfont.render('Click' , True , self.color)
-        self.plot2Text = self.smallfont.render('Brain' , True , self.color)
+        self.exitText = self.smallfont.render("Quit", True, self.color)
+        self.plot1Text = self.smallfont.render("Click", True, self.color)
+        self.plot2Text = self.smallfont.render("Brain", True, self.color)
         self.openText = self.smallfont.render("Open File", True, self.color)
 
         # Create widths & heights for different rects, text
-        self.exitX, self.exitY, self.exitWidth, self.exitHeight = 17*self.width/20, 8*self.height / 9, self.width/8, self.height/12
+        self.exitX, self.exitY, self.exitWidth, self.exitHeight = (
+            17 * self.width / 20,
+            8 * self.height / 9,
+            self.width / 8,
+            self.height / 12,
+        )
         self.plotWidth, self.plotHeight = self.width / 4, self.height / 8
         self.plot1X, self.plot1Y = 1 * self.width / 7, 5.75 * self.height / 8
         self.plot2X, self.plot2Y = 4.5 * self.width / 7, 5.75 * self.height / 8
 
         # Create rectangles
         self.exitRect = pg.Rect(self.exitX, self.exitY, self.exitWidth, self.exitHeight)
-        self.plot1Rect = pg.Rect(self.plot1X, self.plot1Y, self.plotWidth, self.plotHeight)
-        self.plot2Rect = pg.Rect(self.plot2X, self.plot2Y, self.plotWidth, self.plotHeight)
+        self.plot1Rect = pg.Rect(
+            self.plot1X, self.plot1Y, self.plotWidth, self.plotHeight
+        )
+        self.plot2Rect = pg.Rect(
+            self.plot2X, self.plot2Y, self.plotWidth, self.plotHeight
+        )
         self.openRect = pg.Rect(315, 225, 150, 50)
         self.connectRect = pg.Rect(250, 230, 100, 30)
 
@@ -128,35 +180,46 @@ class MuseInterface:
         self.deviceInputActive = False
 
     # if mouse is hovered on a button it
-    # changes to lighter shade 
+    # changes to lighter shade
     def drawButton(self, mouse, rect):
         if rect.collidepoint(mouse):
-            pg.draw.rect(self.screen, self.color_light,rect)
+            pg.draw.rect(self.screen, self.color_light, rect)
         else:
-            pg.draw.rect(self.screen, self.color_dark,rect)
+            pg.draw.rect(self.screen, self.color_dark, rect)
 
     # Draws the main screen
     def drawMain(self, mouse):
         # Changes color of streaming circle
         if self.streaming:
-            pg.draw.circle(self.screen, GREEN, self.circPos, 20) # 
+            pg.draw.circle(self.screen, GREEN, self.circPos, 20)  #
         else:
-            pg.draw.circle(self.screen, RED, self.circPos, 20) # 
-        
+            pg.draw.circle(self.screen, RED, self.circPos, 20)  #
+
         # Draws the buttons that can be clicked on.
         self.drawButton(mouse, self.exitRect)
         self.drawButton(mouse, self.plot1Rect)
         self.drawButton(mouse, self.plot2Rect)
-        
+
         # Draw dropdown
         self.dropdown_main.draw(self.screen)
 
         # superimposing the text onto our button
-        self.screen.blit(self.exitText , self.exitText.get_rect(center=self.exitRect.center))
-        self.screen.blit(self.plot1Text , self.plot1Text.get_rect(center=self.plot1Rect.center))
-        self.screen.blit(self.plot2Text , self.plot2Text.get_rect(center=self.plot2Rect.center))
-        self.screen.blit(self.smallfont.render("Muse PyQt Boiler", True, self.color), (200, 50))
-        self.screen.blit(self.smallfont.render("<- Click for streaming On/Off", True, self.color), (200, 295))
+        self.screen.blit(
+            self.exitText, self.exitText.get_rect(center=self.exitRect.center)
+        )
+        self.screen.blit(
+            self.plot1Text, self.plot1Text.get_rect(center=self.plot1Rect.center)
+        )
+        self.screen.blit(
+            self.plot2Text, self.plot2Text.get_rect(center=self.plot2Rect.center)
+        )
+        self.screen.blit(
+            self.smallfont.render("Muse PyQt Boiler", True, self.color), (200, 50)
+        )
+        self.screen.blit(
+            self.smallfont.render("<- Click for streaming On/Off", True, self.color),
+            (200, 295),
+        )
 
         # Draw different things for the interior dropdown
         if self.dropdown_main.main == FILE:
@@ -166,18 +229,27 @@ class MuseInterface:
         elif self.dropdown_main.main == SIMULATE:
             self.drawSimulateDD(mouse)
         else:
-            self.screen.blit(self.smallfont.render("Please select an option from the dropdown.", True, self.color), (100, 150))
+            self.screen.blit(
+                self.smallfont.render(
+                    "Please select an option from the dropdown.", True, self.color
+                ),
+                (100, 150),
+            )
 
     # Draw the dropdown skin for selecting an output file
     def drawFileDD(self, mouse):
         self.drawButton(mouse, self.openRect)
         pg.draw.rect(self.screen, self.color, self.inputBox, 2)
         filename = self.smallfont.render(self.inputText, True, self.color)
-        self.screen.blit(self.openText, self.openText.get_rect(center=self.openRect.center))
-        self.screen.blit(self.smallfont.render("File name:", True, self.color), (130, 180))
+        self.screen.blit(
+            self.openText, self.openText.get_rect(center=self.openRect.center)
+        )
+        self.screen.blit(
+            self.smallfont.render("File name:", True, self.color), (130, 180)
+        )
         self.screen.blit(filename, filename.get_rect(center=self.inputBox.center))
         return
-    
+
     # Draw dropdown skin for connecting to a neurotech device.
     def drawConnectDD(self, mouse):
         self.dropdown_connect_hardware.draw(self.screen)
@@ -190,9 +262,11 @@ class MuseInterface:
             self.dropdown_connect_model_default.draw(self.screen)
 
         self.drawButton(mouse, self.connectRect)
-        self.screen.blit(self.connectText, self.connectText.get_rect(center=self.connectRect.center)) 
+        self.screen.blit(
+            self.connectText, self.connectText.get_rect(center=self.connectRect.center)
+        )
         return
-    
+
     # Draw dropdown skin for simulating neurotech device data.
     def drawSimulateDD(self, mouse):
         return
@@ -204,11 +278,11 @@ class MuseInterface:
 
         self.cacti.draw(self.screen)
         self.cacti.update()
-        
+
         self.bullets.draw(self.screen)
         self.bullets.update()
 
-        self.dino.draw(self.screen) 
+        self.dino.draw(self.screen)
 
         if pg.sprite.spritecollide(self.dino.sprites()[0], self.cacti, False):
             self.mode = MAIN
@@ -219,28 +293,27 @@ class MuseInterface:
         for bullet in self.bullets:
             if pg.sprite.spritecollide(bullet, self.cacti, True):
                 bullet.kill()
-        
+
         return
 
     def addToHypnogram(self, data):
         channel = np.array(data).T[0]
         N, S = 256, []
 
-        for k in range(0, channel.shape[0]+1, N):
-            x = fft.fftshift(fft.fft(channel[k:k+N], n=N))[N//2:N]
-            Pxx = 10*np.log10(np.real(x*np.conj(x)))
+        for k in range(0, channel.shape[0] + 1, N):
+            x = fft.fftshift(fft.fft(channel[k : k + N], n=N))[N // 2 : N]
+            Pxx = 10 * np.log10(np.real(x * np.conj(x)))
             S.append(Pxx)
 
         specgram = np.array(S).T
-        alpha = specgram[32:64,:]
+        alpha = specgram[32:64, :]
         self.hypnogram_data.append(np.mean(alpha, axis=0))
-
 
     # Saves the created neurotech device data to the given filename
     def openFile(self):
         if self.input_file is not None:
             self.input_file.close()
-        
+
         try:
             self.input_file = open(self.inputText, "r")
         except FileNotFoundError:
@@ -248,21 +321,23 @@ class MuseInterface:
         else:
             print("Reading from " + self.inputText)
             self.data = []
-            self.input_file.readline() # Get rid of header
+            self.input_file.readline()  # Get rid of header
             self.inputText = "Input Filename"
 
         return
 
     def writeToOutput(self, data):
-        with open(self.output_filename, mode='a',newline = '') as file:
-            fwriter = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        with open(self.output_filename, mode="a", newline="") as file:
+            fwriter = csv.writer(
+                file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+            )
             fwriter.writerows(data)
 
     def readFromFile(self):
         assert self.input_file is not None
         lines = []
 
-        for _ in range(24): # Read 24 lines at a time
+        for _ in range(24):  # Read 24 lines at a time
             line = self.input_file.readline()
 
             if not line:
@@ -271,7 +346,7 @@ class MuseInterface:
                 self.input_file = None
                 return []
 
-            line = line[1:-1].split(',')
+            line = line[1:-1].split(",")
             lines.append([float(i) for i in line])
         return lines
 
@@ -282,9 +357,14 @@ class MuseInterface:
         self.screen.blit(back, back.get_rect(center=self.exitRect.center))
 
         if self.mode == PLOT1:
-            self.screen.blit(self.smallfont.render("Press 'Space' to shoot!", True, self.color), (240, 30))
+            self.screen.blit(
+                self.smallfont.render("Press 'Space' to shoot!", True, self.color),
+                (240, 30),
+            )
         elif self.mode == PLOT2:
-            self.screen.blit(self.smallfont.render("Think real hard!", True, self.color), (240, 30))
+            self.screen.blit(
+                self.smallfont.render("Think real hard!", True, self.color), (240, 30)
+            )
 
         self.plot()
         return
@@ -303,7 +383,9 @@ class MuseInterface:
         elif self.dropdown_connect_hardware.main == BCI:
             model = self.dropdown_connect_model_bci.main
 
-        self.board = Board(self.dropdown_main.main, self.dropdown_connect_hardware.main, model)
+        self.board = Board(
+            self.dropdown_main.main, self.dropdown_connect_hardware.main, model
+        )
         return
 
     # Accepts the stream, sends it to the right arrays
@@ -313,9 +395,8 @@ class MuseInterface:
 
     # Where to change the jump condition
     def fire_condition_met(self, ev_list, data):
-        if self.mode == PLOT1: # Jump when space bar key is pressed
+        if self.mode == PLOT1:  # Jump when space bar key is pressed
             return any(ev.type == pg.KEYDOWN and ev.key == pg.K_SPACE for ev in ev_list)
-
 
         """
         Change this condition to your liking!
@@ -335,7 +416,9 @@ class MuseInterface:
             # If a muse is connected, take input
             if self.streaming:
                 if self.dropdown_main.main == SIMULATE:
-                    data = np.random.random((20, 4)) * 2000 - 1000 # Map from 0 - 1 -> -1000 - 1000
+                    data = (
+                        np.random.random((20, 4)) * 2000 - 1000
+                    )  # Map from 0 - 1 -> -1000 - 1000
                 elif self.dropdown_main.main == FILE:
                     if self.input_file is not None:
                         data = self.readFromFile()
@@ -353,13 +436,13 @@ class MuseInterface:
                     self.addToHypnogram(data)
             else:
                 data = []
-            
+
             # stores the (x,y) coordinates into
             # the variable as a tuple
             mouse = pg.mouse.get_pos()
-                
+
             ev_list = pg.event.get()
-            
+
             # Update the necessary dropdowns
             if self.mode == MAIN:
                 self.updateDropDown(self.dropdown_connect_hardware, ev_list)
@@ -370,40 +453,40 @@ class MuseInterface:
             for ev in ev_list:
                 if ev.type == pg.QUIT:
                     done = True
-                    
-                #checks if a mouse is clicked
+
+                # checks if a mouse is clicked
                 if ev.type == pg.MOUSEBUTTONDOWN:
 
                     if self.mode == MAIN:
-                        #if the mouse is clicked on the
+                        # if the mouse is clicked on the
                         # button the game is terminated
                         if self.exitRect.collidepoint(mouse):
                             done = True
-                            
+
                         # Change modes depending on the current scren
                         if self.plot1Rect.collidepoint(mouse):
                             self.mode = PLOT1
-                        
+
                         if self.plot2Rect.collidepoint(mouse):
                             self.mode = PLOT2
 
-                        #if the mouse is clicked on the
+                        # if the mouse is clicked on the
                         # button the game is terminated
-                            
+
                         if self.plot1Rect.collidepoint(mouse):
                             time.sleep(0.01)
                             self.mode = PLOT1
-                        
+
                         if self.plot2Rect.collidepoint(mouse):
                             self.mode = PLOT2
-                            
-                        # Detect clicks on the circle
-                        sqx = (mouse[0] - self.circPos[0])**2
-                        sqy = (mouse[1] - self.circPos[1])**2
 
-                        if (sqx + sqy)**0.5 <= 20:
+                        # Detect clicks on the circle
+                        sqx = (mouse[0] - self.circPos[0]) ** 2
+                        sqy = (mouse[1] - self.circPos[1]) ** 2
+
+                        if (sqx + sqy) ** 0.5 <= 20:
                             self.streaming = not self.streaming
-                        
+
                         # Logic for the file dropdown
                         if self.dropdown_main.main == FILE:
                             if self.inputBox.collidepoint(mouse):
@@ -412,7 +495,7 @@ class MuseInterface:
 
                             if self.openRect.collidepoint(mouse):
                                 self.openFile()
-                            
+
                             if self.inputBox.collidepoint(mouse):
                                 self.fileInputActive = True
                                 self.inputText = ""
@@ -423,20 +506,21 @@ class MuseInterface:
 
                         # Logic for the connect dropdown
                         if self.dropdown_main.main == CONNECT:
-                        
+
                             if self.connectRect.collidepoint(mouse):
                                 print(self.dropdown_connect_hardware.main)
                                 # if self.dropdown_connect_hardware.main in [FILE, CONNECT, SIMULATE]:
                                 self.connect()
                                 # else:
-                                    # print("You must select a type of device to connect to.")
+                                # print("You must select a type of device to connect to.")
 
                     # Clear the cacti when going back to main screen
-                    if self.mode in (PLOT1, PLOT2) and self.exitRect.collidepoint(mouse):
+                    if self.mode in (PLOT1, PLOT2) and self.exitRect.collidepoint(
+                        mouse
+                    ):
                         self.cacti.empty()
                         self.bullets.empty()
                         self.mode = MAIN
-
 
                 if self.mode != MAIN:
                     # This version is for click-generation of cacti
@@ -458,7 +542,7 @@ class MuseInterface:
 
             # fills the screen with a color
             self.screen.fill(BACKGROUND_COLOR)
-            
+
             # Draw the appropriate screen.
             if self.mode == MAIN:
                 self.drawMain(mouse)
@@ -467,12 +551,14 @@ class MuseInterface:
 
             # updates the frames of the game
             pg.display.update()
-            
+
         return
+
 
 def main():
     interface = MuseInterface()
     interface.run()
-    
+
+
 if __name__ == "__main__":
     main()

@@ -8,6 +8,7 @@ bullet = pg.transform.scale(bullet, (30, 30))
 dinosaur = pg.image.load(os.path.join(os.getcwd(), "Pygame", "assets", "dinosaur.gif"))
 dinosaur = pg.transform.scale(dinosaur, (100, 100))
 
+
 class Cactus(pg.sprite.Sprite):
 
     # Constructor. Pass in the color of the block,
@@ -27,8 +28,9 @@ class Cactus(pg.sprite.Sprite):
         self.rect.y = height
 
     def update(self):
-         self.rect.x -= 10
-         return
+        self.rect.x -= 10
+        return
+
 
 class Bullet(pg.sprite.Sprite):
 
@@ -49,8 +51,9 @@ class Bullet(pg.sprite.Sprite):
         self.rect.y = height
 
     def update(self):
-         self.rect.x += 20
-         return
+        self.rect.x += 20
+        return
+
 
 class Dinosaur(pg.sprite.Sprite):
 

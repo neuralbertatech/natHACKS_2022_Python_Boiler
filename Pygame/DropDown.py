@@ -8,8 +8,8 @@ COLOR_ACTIVE = (100, 200, 255)
 COLOR_LIST_INACTIVE = (255, 100, 100)
 COLOR_LIST_ACTIVE = (255, 150, 150)
 
-class DropDown():
 
+class DropDown:
     def __init__(self, x, y, w, h, font, main, options):
         self.color_menu = [COLOR_INACTIVE, COLOR_ACTIVE]
         self.color_option = [COLOR_LIST_INACTIVE, COLOR_LIST_ACTIVE]
@@ -21,28 +21,32 @@ class DropDown():
         self.menu_active = False
         self.active_option = -1
 
-
     def draw(self, surf):
         pg.draw.rect(surf, self.color_menu[self.menu_active], self.rect, 0)
         msg = self.font.render(self.main, 1, (0, 0, 0))
-        surf.blit(msg, msg.get_rect(center = self.rect.center))
+        surf.blit(msg, msg.get_rect(center=self.rect.center))
 
         if self.draw_menu:
             for i, text in enumerate(self.options):
                 rect = self.rect.copy()
-                rect.y += (i+1) * self.rect.height
-                pg.draw.rect(surf, self.color_option[1 if i == self.active_option else 0], rect, 0)
+                rect.y += (i + 1) * self.rect.height
+                pg.draw.rect(
+                    surf,
+                    self.color_option[1 if i == self.active_option else 0],
+                    rect,
+                    0,
+                )
                 msg = self.font.render(text, 1, (0, 0, 0))
-                surf.blit(msg, msg.get_rect(center = rect.center))
-    
+                surf.blit(msg, msg.get_rect(center=rect.center))
+
     def update(self, event_list):
         mpos = pg.mouse.get_pos()
         self.menu_active = self.rect.collidepoint(mpos)
-        
+
         self.active_option = -1
         for i in range(len(self.options)):
             rect = self.rect.copy()
-            rect.y += (i+1) * self.rect.height
+            rect.y += (i + 1) * self.rect.height
             if rect.collidepoint(mpos):
                 self.active_option = i
                 break

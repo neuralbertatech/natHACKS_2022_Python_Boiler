@@ -18,6 +18,7 @@ CYTON_DAISY = "Cytom-Daisy"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 
+
 class Board:
     def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False):
         if debug == True:
@@ -72,8 +73,6 @@ class Board:
 
         self.chan_num = len(exg_channels)
         self.exg_channels = np.array(exg_channels)
-
-
 
     def get_new_data(self):
         return self.board.get_current_board_data(self.num_points)
