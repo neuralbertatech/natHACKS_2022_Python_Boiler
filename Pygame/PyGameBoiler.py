@@ -1,20 +1,15 @@
-from uvicmuse.MuseWrapper import MuseWrapper as MW
 import matplotlib.backends.backend_agg as agg
-from pylsl import StreamInfo, StreamOutlet, resolve_byprop, StreamInlet
-from pyOpenBCI import OpenBCICyton
 from DropDown import DropDown
 from PlusMinusButton import PlusMinusButton
+from Board import FILE, MUSE_2, MUSE_S, SIMULATE, CONNECT, MUSE, BCI, GANGLION, Board
 import numpy as np
 import pygame as pg
 import matplotlib
-import asyncio
-import typing
-import pylab
 import time
-import sys
+
+from Board import CYTON, CYTON_DAISY
 matplotlib.use("Agg")
 import random
-import os
 from Sprites import *
 import csv
 from scipy import fft
@@ -25,14 +20,6 @@ PLOT2 = 2
 
 GREEN = (0, 255, 0)
 RED =   (255, 0, 0)
-
-FILE = "File"
-SIMULATE = "Simulate"
-CONNECT = "Connect"
-
-MUSE = "Muse"
-BCI = "OpenBCI"
-GANGLION = "Ganglion"
 
 LEFT_CLICK = 0
 RANDOM = 1
@@ -86,8 +73,10 @@ class MuseInterface:
         self.smallfont = pg.font.SysFont('Corbel', 25)
 
         self.dropdown_main = DropDown(0, 0, 100, 40, pg.font.SysFont("Corbel", 18), "Select Mode", [FILE, SIMULATE, CONNECT])
-        self.dropdown_connect = DropDown(125, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [MUSE, BCI, GANGLION])
-
+        self.dropdown_connect_hardware = DropDown(125, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [MUSE, BCI])
+        self.dropdown_connect_model_muse = DropDown(375, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [MUSE_2, MUSE_S])
+        self.dropdown_connect_model_bci = DropDown(375, 100, 100, 40, pg.font.SysFont("Corbel", 15), "Select Device", [CYTON, CYTON_DAISY, GANGLION])
+        self.dropdown_connect_model_default = DropDown(350, 100, 150, 40, pg.font.SysFont("Corbel", 15), "<- Select Mode First!", [])
 
         self.clock = pg.time.Clock()
 
@@ -125,7 +114,7 @@ class MuseInterface:
         self.plot1Rect = pg.Rect(self.plot1X, self.plot1Y, self.plotWidth, self.plotHeight)
         self.plot2Rect = pg.Rect(self.plot2X, self.plot2Y, self.plotWidth, self.plotHeight)
         self.openRect = pg.Rect(315, 225, 150, 50)
-        self.connectRect = pg.Rect(295, 230, 100, 30)
+        self.connectRect = pg.Rect(250, 230, 100, 30)
 
         # Create miscillaneous pygame objects
         self.inputBox = pg.Rect(255, 165, 295, 50)
@@ -191,13 +180,16 @@ class MuseInterface:
     
     # Draw dropdown skin for connecting to a neurotech device.
     def drawConnectDD(self, mouse):
-        self.dropdown_connect.draw(self.screen)
-        pg.draw.rect(self.screen, self.color, self.deviceInputBox, 2)
-        self.drawButton(mouse, self.connectRect)
+        self.dropdown_connect_hardware.draw(self.screen)
 
-        deviceName = self.smallfont.render(self.deviceText, True, self.color)
-        self.screen.blit(self.smallfont.render("Input Device Code", True, self.color), (260, 140))
-        self.screen.blit(deviceName, deviceName.get_rect(center=self.deviceInputBox.center)) 
+        if self.dropdown_connect_hardware.main == MUSE:
+            self.dropdown_connect_model_muse.draw(self.screen)
+        elif self.dropdown_connect_hardware.main == BCI:
+            self.dropdown_connect_model_bci.draw(self.screen)
+        else:
+            self.dropdown_connect_model_default.draw(self.screen)
+
+        self.drawButton(mouse, self.connectRect)
         self.screen.blit(self.connectText, self.connectText.get_rect(center=self.connectRect.center)) 
         return
     
@@ -305,59 +297,14 @@ class MuseInterface:
         return
 
     # Connects to a Muse
-    def connectToMuse(self):
-        loop = asyncio.get_event_loop()
+    def connect(self):
+        if self.dropdown_connect_hardware.main == MUSE:
+            model = self.dropdown_connect_model_muse.main
+        elif self.dropdown_connect_hardware.main == BCI:
+            model = self.dropdown_connect_model_bci.main
 
-        # If an argument was passed, assume it is the device name
-        target = None if self.deviceText == "" else self.deviceText
-        self.M_wrapper = MW(loop = loop,
-                         target_name = target,
-                         timeout = 10,
-                         max_buff_len = 500) 
-
-        if len(self.deviceText):
-            print("Searching for muse with name \"{}\"".format(self.deviceText))
-        else:
-            print("Searching for any Muse")
-        if self.M_wrapper.search_and_connect():
-            print("Connected")
-            self.stream = MUSE
-
-    # Connects to BCI (Cyton, or Cyton-Daisy)
-    def connectToBCI(self):
-        print("Creating LSL stream for EEG. \nName: OpenBCIEEG\nID: OpenBCItestEEG\n")
-        info_eeg = StreamInfo('OpenBCIEEG', 'EEG', 8, 250, 'float32', 'OpenBCItestEEG')
-        print("Creating LSL stream for AUX. \nName: OpenBCIAUX\nID: OpenBCItestEEG\n")
-        info_aux = StreamInfo('OpenBCIAUX', 'AUX', 3, 250, 'float32', 'OpenBCItestAUX')
-
-        self.outlet_eeg = StreamOutlet(info_eeg)
-        self.outlet_aux = StreamOutlet(info_aux)
-
-        # need to put in the COM port that the OpenBCI dongle is attached to
-        # need to change daisy to false if only 8 channel
-        try:
-            self.board = OpenBCICyton(port='COM*', daisy=True) 
-        except Exception as e:
-            print("ERROR: " + e.args[0])
-            self.board = None
-        else:
-            self.stream = BCI
-            self.board.start_stream(self.lsl_streamers)
-        
+        self.board = Board(self.dropdown_main.main, self.dropdown_connect_hardware.main, model)
         return
-    
-    def connectToGanglion(self):
-        print('Looking for ganglion EEG lsl stream \nMake sure stream is started from openBCI gui')
-        streams = resolve_byprop('type','EEG')
-        try:
-            self.eeg_inlet = StreamInlet(streams[0])
-        except Exception as e:
-            print("ERROR: " + e.args[0])
-            self.eeg_inlet = None
-        else:
-            self.stream = GANGLION
-
-
 
     # Accepts the stream, sends it to the right arrays
     def lsl_streamers(self, sample):
@@ -387,21 +334,22 @@ class MuseInterface:
 
             # If a muse is connected, take input
             if self.streaming:
-                if self.stream == MUSE:
-                    data = self.M_wrapper.pull_eeg()
-                    self.writeToOutput(data)
-                elif self.dropdown_main.main == SIMULATE:
+                if self.dropdown_main.main == SIMULATE:
                     data = np.random.random((20, 4)) * 2000 - 1000 # Map from 0 - 1 -> -1000 - 1000
-                    self.writeToOutput(data)
-                elif self.stream == GANGLION:
-                    # if ganglion is connected, take input
-                    timestamp, data = self.eeg_inlet.pull_sample()
-                    print('pulled {}'.format(data))
-                elif self.input_file is not None:
-                    data = self.readFromFile()
+                elif self.dropdown_main.main == FILE:
+                    if self.input_file is not None:
+                        data = self.readFromFile()
+                    else:
+                        print("Please use an existing data file!")
+                elif self.dropdown_main.main == CONNECT:
+                    data = self.board.get_new_data()
                 else:
                     data = []
+
+                # Only waste time appending if we need to.
                 if len(data):
+                    print("Pulled: {}".format(data.shape))
+                    self.writeToOutput(data)
                     self.addToHypnogram(data)
             else:
                 data = []
@@ -414,7 +362,9 @@ class MuseInterface:
             
             # Update the necessary dropdowns
             if self.mode == MAIN:
-                self.updateDropDown(self.dropdown_connect, ev_list)
+                self.updateDropDown(self.dropdown_connect_hardware, ev_list)
+                self.updateDropDown(self.dropdown_connect_model_muse, ev_list)
+                self.updateDropDown(self.dropdown_connect_model_bci, ev_list)
                 self.updateDropDown(self.dropdown_main, ev_list)
 
             for ev in ev_list:
@@ -473,21 +423,13 @@ class MuseInterface:
 
                         # Logic for the connect dropdown
                         if self.dropdown_main.main == CONNECT:
-                            if self.deviceInputBox.collidepoint(mouse):
-                                self.deviceInputActive = True
-                                self.deviceText = ""
-                            else:
-                                self.deviceInputActive = False
                         
                             if self.connectRect.collidepoint(mouse):
-                                if self.dropdown_connect.main == MUSE:
-                                    self.connectToMuse()
-                                elif self.dropdown_connect.main == BCI:
-                                    self.connectToBCI()
-                                elif self.dropdown_connect.main == GANGLION:
-                                    self.connectToGanglion()
-                                else:
-                                    print("You must select a type of device to connect to.")
+                                print(self.dropdown_connect_hardware.main)
+                                # if self.dropdown_connect_hardware.main in [FILE, CONNECT, SIMULATE]:
+                                self.connect()
+                                # else:
+                                    # print("You must select a type of device to connect to.")
 
                     # Clear the cacti when going back to main screen
                     if self.mode in (PLOT1, PLOT2) and self.exitRect.collidepoint(mouse):
@@ -510,15 +452,6 @@ class MuseInterface:
                             self.inputText = self.inputText[:-1]
                         else:
                             self.inputText += ev.unicode
-                        
-                    # Detect input on device name
-                    if self.deviceInputActive:
-                        if ev.key == pg.K_RETURN:
-                            self.deviceInputActive = False
-                        elif ev.key == pg.K_BACKSPACE:
-                            self.deviceText = self.deviceText[:-1]
-                        else:
-                            self.deviceText += ev.unicode
 
             if self.mode != MAIN and self.fire_condition_met(ev_list, data):
                 self.bullets.add(Bullet(150, self.floor + 35))

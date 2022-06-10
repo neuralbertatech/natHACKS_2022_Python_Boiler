@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 nathacks_env/
+
+# Data files
+*.csv
