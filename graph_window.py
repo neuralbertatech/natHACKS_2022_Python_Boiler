@@ -7,6 +7,7 @@ import time
 import csv
 import random
 import pdb
+import logging
 
 from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
@@ -56,8 +57,11 @@ class graph_win(QWidget):
         save_file=None,
         parent=None,
         board_id=None,
+        log_file = 'graph_win'+str(time.time())+'.log'
     ):
         super().__init__()
+        logging.basicConfig(filename=log_file,level=logging.INFO)
+        logging.info('Initializing graph_win (Graph window)')
         self.parent = parent
         self.sim_type = sim_type
         self.hardware = hardware
@@ -75,6 +79,7 @@ class graph_win(QWidget):
 
         # set baord id based on parameters only if it wasn't given to us
         if board_id == None:
+            logging.warning('Board id was not proved to graph window. Attempting to set based on hardware, model, and data type.')
             if self.data_type == "Task live":
                 if self.hardware == "openBCI":
                     if self.model == "Ganglion":
@@ -93,9 +98,16 @@ class graph_win(QWidget):
         else:
             self.board_id = board_id
 
+        logging.info('Graph window is starting to connect to hardware with board id {}. \n \
+        Board ID key: https://brainflow.readthedocs.io/en/stable/SupportedBoards.html'.format(self.board_id))
 
         if self.params.serial_port == None:
-            for i in range(10):
+
+            logging.warning('COM port was not provided. Graph window is trying COM ports for board connection')
+            connected_yet = False
+            i = 0
+            search_num = 25
+            while i <= search_num and connected_yet == False:
                 self.params.serial_port = 'COM'+str(i)
                 self.board = BoardShim(self.board_id, self.params)
                 try:
@@ -103,17 +115,24 @@ class graph_win(QWidget):
                 except brainflow.board_shim.BrainFlowError as e:
                     pass
                 else:
+                    logging.info('Graph window connected using com port COM{}'.format(i))
                     # didn't have the bad com port exeption
+                    connected_yet = True
                     break
+                i+=1
+            if connected_yet == False:
+                # if we're here, it didn't connect and we're out of COM ports
+                logging.error('Graph window failed to find a COM port for given hardware (board id: {}). \
+                    Please specify COM port manually or increase the number of COM ports searched (Currently {}).'.format(self.board_id,search_num))
+                raise Exception('Unable to find COM port to connect to hardware.')
         else:
+            logging.info('Graph window is using {} port for board connection'.format(self.params.serial_port))
             self.board = BoardShim(self.board_id, self.params)
             self.board.prepare_session()
 
-        print(
-            "init hardware is running with hardware", self.hardware, "model", self.model
-        )
         self.board.start_stream()
         self.hardware_connected = True
+        logging.info('Hardware connected; stream started.')
 
         self.exg_channels = BoardShim.get_exg_channels(self.board_id)
         self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
@@ -163,6 +182,7 @@ class graph_win(QWidget):
             self.curves.append(curve)
 
     def update(self):
+        logging.debug('Graph window is updating')
         data = self.board.get_current_board_data(self.num_points)
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
@@ -223,6 +243,7 @@ class graph_win(QWidget):
                 0,
             )
             self.curves[count].setData(data[channel].tolist())
+        logging.debug('Graph window finished updating (successfully got data from board and applied it to graphs)')
 
     def closeEvent(self, event):
         self.timer.stop()
@@ -231,6 +252,7 @@ class graph_win(QWidget):
         self.board.release_session()
         print(self.data.shape)
         print(self.data)
+        logging.info('Now closing graph window')
         self.close()
 
 

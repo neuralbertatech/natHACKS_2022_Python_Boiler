@@ -69,6 +69,7 @@ import numpy as np
 import random
 import time
 import os
+import logging
 
 # from spectrograph import spectrograph_gui
 
@@ -86,13 +87,15 @@ if sys.platform == "win32":
 else:
     from arduino_mac import ard_mac_on as ard_turn_on
 
-# import pdb
+log_file = 'boiler_'+str(int(time.time()))+'.log'
+logging.basicConfig(filename=log_file, level=logging.INFO)
 
 
 # let's make a menu window class
 class MenuWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__()
+        logging.info('Initializing MenuWindow')
 
         ####################################
         ##### Init Main Window Globals #####
@@ -106,11 +109,7 @@ class MenuWindow(QMainWindow):
         |       CSV                   ARDUINO       |
         |                                           |
         |------------------ACTIONS------------------|
-        |                                           |
-        |    IMPED       BASELINE        SESSION    |
-        |    ARDUINO     MODEL           RESULTS    |
-        |                GRAPH                      |
-        |                                           |
+        |       arduino       graph        imped    |
         |-------------------------------------------|
 
         """
@@ -192,7 +191,8 @@ class MenuWindow(QMainWindow):
         self.model_layout.addWidget(self.model_label)
         self.model_layout.addWidget(self.model_dropdown)
         ### CSV ###
-        self.csv_name_edit = QLineEdit("eeg_log_file.csv")
+        self.csv_name = 'eeg_'+log_file[:-4]+'.csv'
+        self.csv_name_edit = QLineEdit(self.csv_name)
         self.csv_name_edit.returnPressed.connect(self.csv_name_changed)
         self.csv_label = QLabel(
             "Prefix of session's CSV file.\nHit 'Enter' to update filename."
@@ -298,9 +298,6 @@ class MenuWindow(QMainWindow):
         # this is a variable to show whether we have a impedance window open
         self.impedance_window_open = False
 
-        # init variable for saving temp csv name
-        self.csv_name = None
-
         # targ limb
         self.targ_limb = None
 
@@ -308,6 +305,7 @@ class MenuWindow(QMainWindow):
     def closeEvent(self, event):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
+        logging.info('Closing MenuWindow')
         if self.data_window_open:
             self.data_window.close()
         if self.impedance_window_open:
@@ -336,7 +334,6 @@ class MenuWindow(QMainWindow):
     def handle_model_choice(self):
         # handle the choice of model by opening up data type selection
         self.model = self.model_dropdown.currentText()
-        self.baseline_window_button.setEnabled(False)
         self.openbci_port.setEnabled(False)
         self.type_dropdown.setEnabled(True)
         self.type_dropdown.setCurrentIndex(-1)
@@ -375,9 +372,8 @@ class MenuWindow(QMainWindow):
                 elif self.model == "Muse S":
                     self.board_id = 21
         elif self.data_type == "Task simulate":
-            self.baseline_window_button.setEnabled(True)
             self.impedance_window_button.setEnabled(True)
-            self.title.setText("Check Impedance or Start Baseline")
+            self.title.setText("Check impedance or graph")
             self.board_id = -1
 
     def handle_bci_port(self):
@@ -386,12 +382,10 @@ class MenuWindow(QMainWindow):
             self.type_dropdown.setEnabled(True)
             self.bci_serial_port = "COM" + self.openbci_port.text()
             if self.data_type == "Task live":
-                self.baseline_window_button.setEnabled(True)
                 self.impedance_window_button.setEnabled(True)
-            self.title.setText("Check Impedance or Start Baseline")
+            self.title.setText("Check impedance or graph")
         else:
             # print("Error: OpenBCI port # must be an integer.")
-            self.baseline_window_button.setEnabled(False)
             self.title.setText("Select BCI Hardware Port")
 
     def handle_arduino_dropdown(self):
@@ -425,8 +419,9 @@ class MenuWindow(QMainWindow):
         #         time.sleep(0.1)
         #     self.arduino_process.close()
         #     self.arduino_process = None
+        logging.info('MenuWindow is creating arduino window')
         if self.arduino_port.text().isdigit() != True:
-            print("Error: arduino port # must be an integer.")
+            logging.warning('MenuWindow failed to create arduino window because arduino port was not an integer')
         else:
             self.data_window = ard_turn_on(
                 parent=self,
@@ -436,8 +431,10 @@ class MenuWindow(QMainWindow):
             self.data_window.show()
             self.data_window.show()
             self.is_data_window_open = True
+            logging.info('MenuWindow created arduino window')
 
     def open_impedance_window(self):
+        logging.info('MenuWindow is creating impedance window')
         self.impedance_window = impedance_win(
             parent=self,
             hardware=self.hardware,
@@ -448,6 +445,7 @@ class MenuWindow(QMainWindow):
         )
         self.impedance_window.show()
         self.impedance_window_open = True
+        logging.info('MenuWindow created impedance window')
 
     def open_graph_window(self):
         icon = "Warning"
@@ -486,6 +484,7 @@ class MenuWindow(QMainWindow):
                 icon,
             )
         else:
+            logging.info('MenuWindow is creating graph window')
             self.graph_window = graph_win(
                 parent=self,
                 hardware=self.hardware,
@@ -497,11 +496,12 @@ class MenuWindow(QMainWindow):
             )
             self.graph_window.show()
             self.is_graph_window_open = True
+            logging.info('MenuWindow created graph window')
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = MenuWindow()
+    logging.info('MenuWindow created')
     win.show()
-    # print('we got here')
     sys.exit(app.exec())
