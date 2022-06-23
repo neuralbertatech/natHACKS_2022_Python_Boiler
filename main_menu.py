@@ -63,7 +63,6 @@ from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
 from PyQt5 import QtCore, Qt
 from PyQt5.QtWidgets import *
-from alert_box import showMessageBox
 
 import numpy as np
 import random
@@ -87,15 +86,19 @@ if sys.platform == "win32":
 else:
     from arduino_mac import ard_mac_on as ard_turn_on
 
-log_file = 'boiler_'+str(int(time.time()))+'.log'
-logging.basicConfig(filename=log_file, level=logging.INFO)
+# Creates the global logger
+log_file = "boiler.log"
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, filemode="a")
+logger = logging.getLogger("MenuWindow")
+logger.addHandler(logging.FileHandler(log_file))
+logger.info("Program started at {}".format(time.time()))
 
 
 # let's make a menu window class
 class MenuWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__()
-        logging.info('Initializing MenuWindow')
+        logger.info("Initializing")
 
         ####################################
         ##### Init Main Window Globals #####
@@ -116,7 +119,6 @@ class MenuWindow(QMainWindow):
 
         self.setMinimumSize(900, 950)
 
-        
         # self.setStyleSheet("background-color: gray;")
         # setting window title and icon
         self.setWindowTitle("PyQt5 Menu")
@@ -191,7 +193,7 @@ class MenuWindow(QMainWindow):
         self.model_layout.addWidget(self.model_label)
         self.model_layout.addWidget(self.model_dropdown)
         ### CSV ###
-        self.csv_name = 'eeg_'+log_file[:-4]+'.csv'
+        self.csv_name = "eeg_" + log_file[:-4] + ".csv"
         self.csv_name_edit = QLineEdit(self.csv_name)
         self.csv_name_edit.returnPressed.connect(self.csv_name_changed)
         self.csv_label = QLabel(
@@ -280,9 +282,7 @@ class MenuWindow(QMainWindow):
         self.layout.addWidget(
             self.arduino_window_button, 5, 0, 1, 1, QtCore.Qt.AlignHCenter
         )
-        self.arduino_window_button.clicked.connect(
-            self.open_arduino_window
-        )
+        self.arduino_window_button.clicked.connect(self.open_arduino_window)
 
         # here is a button to display graph
         self.graph_window_button = QPushButton("Graph")
@@ -301,11 +301,10 @@ class MenuWindow(QMainWindow):
         # targ limb
         self.targ_limb = None
 
-
     def closeEvent(self, event):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
-        logging.info('Closing MenuWindow')
+        logger.info("Closing")
         if self.data_window_open:
             self.data_window.close()
         if self.impedance_window_open:
@@ -419,9 +418,11 @@ class MenuWindow(QMainWindow):
         #         time.sleep(0.1)
         #     self.arduino_process.close()
         #     self.arduino_process = None
-        logging.info('MenuWindow is creating arduino window')
+        logger.info("creating arduino window")
         if self.arduino_port.text().isdigit() != True:
-            logging.warning('MenuWindow failed to create arduino window because arduino port was not an integer')
+            logger.warning(
+                "failed to create arduino window because arduino port was not an integer"
+            )
         else:
             self.data_window = ard_turn_on(
                 parent=self,
@@ -431,60 +432,28 @@ class MenuWindow(QMainWindow):
             self.data_window.show()
             self.data_window.show()
             self.is_data_window_open = True
-            logging.info('MenuWindow created arduino window')
+            logger.info("created arduino window")
 
     def open_impedance_window(self):
-        logging.info('MenuWindow is creating impedance window')
-        self.impedance_window = impedance_win(
-            parent=self,
-            hardware=self.hardware,
-            model=self.model,
-            data_type=self.data_type,
-            serial_port=self.bci_serial_port,
-            board_id=self.board_id,
-        )
-        self.impedance_window.show()
-        self.impedance_window_open = True
-        logging.info('MenuWindow created impedance window')
+        if self.checks_for_graph_and_impedance_window():
+            logger.info("creating impedance window")
+            self.impedance_window = impedance_win(
+                parent=self,
+                hardware=self.hardware,
+                model=self.model,
+                data_type=self.data_type,
+                serial_port=self.bci_serial_port,
+                board_id=self.board_id,
+            )
+            self.impedance_window.show()
+            self.impedance_window_open = True
+            logger.info("created impedance window")
+        else:
+            logger.info("User must fix errors before impedance window can be created.")
 
     def open_graph_window(self):
-        icon = "Warning"
-        title = "Error"
-
-        if self.hardware is None:
-            showMessageBox(
-                title,
-                "Hardware attribute is not set. Please fix before running graph.",
-                icon,
-            )
-        elif self.model is None:
-            showMessageBox(
-                title,
-                "Model attribute is not set. Please fix before running graph.",
-                icon,
-            )
-        elif self.data_type is None:
-            showMessageBox(
-                title,
-                "Model attribute is not set. Please fix before running graph.",
-                icon,
-            )
-        elif self.board_id is None:
-            showMessageBox(
-                title,
-                "Model attribute is not set. Please fix before running graph.",
-                icon,
-            )
-
-            # TODO: Check if simulation file exists, alert if not true
-        elif self.data_type == "Task simulate" and self.csv_name is None:
-            showMessageBox(
-                title,
-                "CSV file to read for simulation is not provided. Please fix before running graph.",
-                icon,
-            )
-        else:
-            logging.info('MenuWindow is creating graph window')
+        if self.checks_for_graph_and_impedance_window():
+            logger.info("MenuWindow is creating graph window")
             self.graph_window = graph_win(
                 parent=self,
                 hardware=self.hardware,
@@ -496,12 +465,39 @@ class MenuWindow(QMainWindow):
             )
             self.graph_window.show()
             self.is_graph_window_open = True
-            logging.info('MenuWindow created graph window')
+            logger.info("created graph window")
+        else:
+            logger.info("User must fix errors before graph window can be created.")
+
+    def checks_for_graph_and_impedance_window(self):
+        if self.hardware is None:
+            logger.warning(
+                "Hardware attribute is not set. Please fix before running graph."
+            )
+            return False
+        elif self.model is None:
+            logger.warning(
+                "Model attribute is not set. Please fix before running graph."
+            )
+            return False
+        elif self.data_type is None:
+            logger.warning(
+                "Data Type attribute is not set. Please fix before running graph."
+            )
+            return False
+            # TODO: Check if simulation file exists, alert if not true
+        elif self.data_type == "Task simulate" and self.csv_name is None:
+            logger.warning(
+                "CSV file to read for simulation is not provided. Please fix before running graph."
+            )
+            return False
+
+        return True
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = MenuWindow()
-    logging.info('MenuWindow created')
+    logger.info("MenuWindow created")
     win.show()
     sys.exit(app.exec())
