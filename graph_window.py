@@ -2,6 +2,7 @@
 This graphs EEG data, live. 
 """
 
+from dataclasses import dataclass
 import sys
 import time
 import csv
@@ -61,6 +62,7 @@ class graph_win(QWidget):
     ):
         super().__init__()
         logging.basicConfig(filename=log_file,level=logging.INFO)
+        # logging.basicConfig(filename='save_test_log',level=logging.DEBUG)
         logging.info('Initializing graph_win (Graph window)')
         self.parent = parent
         self.sim_type = sim_type
@@ -142,6 +144,7 @@ class graph_win(QWidget):
 
         self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
+        logging.debug('EXG channels is {}'.format(self.exg_channels))
 
         # set up stuff to save our data
         # just a numpy array for now
@@ -184,6 +187,12 @@ class graph_win(QWidget):
     def update(self):
         logging.debug('Graph window is updating')
         data = self.board.get_current_board_data(self.num_points)
+        # save data to our csv super quick
+        with open(self.save_file,'a') as csvfile:
+            data_to_save = data[BoardShim.get_exg_channels(self.board_id),:].T
+            logging.debug('data size {}'.format(data_to_save.shape))
+            logging.debug(data_to_save)
+            np.savetxt(csvfile,data_to_save,delimiter = ',')
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
         # what is and isn't eeg. We will ignore non eeg and not save it
