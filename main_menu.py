@@ -97,6 +97,11 @@ logger.info("Program started at {}".format(time.time()))
 # let's make a menu window class
 class MenuWindow(QMainWindow):
     def __init__(self, parent=None):
+        """The init function, creates the user interface for the main menu.
+
+        Args:
+            parent (QWindow, optional): The parent of the main window. Defaults to None.
+        """
         super().__init__()
         logger.info("Initializing")
 
@@ -302,6 +307,11 @@ class MenuWindow(QMainWindow):
         self.targ_limb = None
 
     def closeEvent(self, event):
+        """Autoruns before the window closes. Ensures that all running streams are terminated.
+
+        Args:
+            event (?): The close event.
+        """
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
         logger.info("Closing")
@@ -316,6 +326,7 @@ class MenuWindow(QMainWindow):
     #########################################
 
     def handle_hardware_choice(self):
+        """Handles changes to the hardware dropdown"""
         self.hardware = self.hardware_dropdown.currentText()
         # handle the choice of hardware - by opening up model selection
         self.model_dropdown.setEnabled(True)
@@ -331,6 +342,7 @@ class MenuWindow(QMainWindow):
             self.model_dropdown.addItem("Prototype")
 
     def handle_model_choice(self):
+        """Handles changes to the model dropdown"""
         # handle the choice of model by opening up data type selection
         self.model = self.model_dropdown.currentText()
         self.openbci_port.setEnabled(False)
@@ -339,6 +351,7 @@ class MenuWindow(QMainWindow):
         self.title.setText("Select data type")
 
     def csv_name_changed(self):
+        """Handles changes to the csv_name text field."""
         # this runs when the user hits enter on the text edit to set the name of the csv log file
         # first we check if file already exists
         print("text is {}".format(self.csv_name_edit.text()))
@@ -353,6 +366,7 @@ class MenuWindow(QMainWindow):
             self.csv_name = self.csv_name_edit.text()
 
     def handle_type_choice(self):
+        """Handles changes to the data type drop down."""
         # handle the choice of data type
         self.data_type = self.type_dropdown.currentText()
         if self.data_type == "Task live":
@@ -376,6 +390,7 @@ class MenuWindow(QMainWindow):
             self.board_id = -1
 
     def handle_bci_port(self):
+        """Handles actions made within the bci_port text field"""
         # check for correct value entering and enable type dropdown menu
         if self.openbci_port.text().isdigit():
             self.type_dropdown.setEnabled(True)
@@ -388,6 +403,7 @@ class MenuWindow(QMainWindow):
             self.title.setText("Select BCI Hardware Port")
 
     def handle_arduino_dropdown(self):
+        """Handles actions within the arduino dropdown"""
         # check if arduino checkbox is enabled
         self.arduino_con = self.arduino_dropdown.currentText()
         self.arduino_port.setEnabled(True)
@@ -398,6 +414,7 @@ class MenuWindow(QMainWindow):
             self.arduino_window_button.setEnabled(False)
 
     def handle_arduino_port(self):
+        """Handles changes to input in the arduino port field"""
         # check for correct value entering and enable type dropdown menu
         if self.arduino_port.text().isdigit():
             self.arduino_window_button.setEnabled(True)
@@ -410,6 +427,7 @@ class MenuWindow(QMainWindow):
     #########################################
 
     def open_arduino_window(self):
+        """Opens the arduino window."""
         # this actually starts the arduino testing window
         # called by user pressing button, which is enabled by selecting from dropdowns
         # if self.arduino_process is not None:
@@ -435,6 +453,7 @@ class MenuWindow(QMainWindow):
             logger.info("created arduino window")
 
     def open_impedance_window(self):
+        """Opens the impedance window, moves program control over."""
         if self.checks_for_graph_and_impedance_window():
             logger.info("creating impedance window")
             self.impedance_window = impedance_win(
@@ -452,6 +471,7 @@ class MenuWindow(QMainWindow):
             logger.info("User must fix errors before impedance window can be created.")
 
     def open_graph_window(self):
+        """Opens the graph window, moves program control over."""
         if self.checks_for_graph_and_impedance_window():
             logger.info("MenuWindow is creating graph window")
             self.graph_window = graph_win(
@@ -470,6 +490,12 @@ class MenuWindow(QMainWindow):
             logger.info("User must fix errors before graph window can be created.")
 
     def checks_for_graph_and_impedance_window(self):
+        """Checks that all attributes are properly set for both the impedance and graph window.
+        Logs a warning message about what must be fixed.
+
+        Returns:
+            bool: True if the window can be opened, False otherwise
+        """
         if self.hardware is None:
             logger.warning(
                 "Hardware attribute is not set. Please fix before running graph."
