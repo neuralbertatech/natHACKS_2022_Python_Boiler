@@ -70,6 +70,14 @@ import time
 import os
 import logging
 
+
+# Creates the global logger
+log_file = "boiler.log"
+logging.basicConfig(level=logging.INFO, filemode="a", filename = log_file, format='Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+logger = logging.getLogger("MenuWindow")
+logger.addHandler(logging.FileHandler(log_file))
+logger.info("Program started at {}".format(time.time()))
+
 # from spectrograph import spectrograph_gui
 
 from impedance_window import impedance_win
@@ -86,12 +94,6 @@ if sys.platform == "win32":
 else:
     from arduino_mac import ard_mac_on as ard_turn_on
 
-# Creates the global logger
-log_file = "boiler.log"
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, filemode="a")
-logger = logging.getLogger("MenuWindow")
-logger.addHandler(logging.FileHandler(log_file))
-logger.info("Program started at {}".format(time.time()))
 
 
 # let's make a menu window class
@@ -364,6 +366,11 @@ class MenuWindow(QMainWindow):
             self.csv_name = self.csv_name_edit.text()[:-4] + "_1.csv"
         else:
             self.csv_name = self.csv_name_edit.text()
+
+        # choose directory for file saving
+        save_directory = QFileDialog.getExistingDirectory()
+        self.csv_name = save_directory+'/'+self.csv_name
+        logger.info('Selected save location: {}'.format(self.csv_name))
 
     def handle_type_choice(self):
         """Handles changes to the data type drop down."""
