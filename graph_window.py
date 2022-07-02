@@ -11,10 +11,18 @@ import pdb
 import logging
 
 log_file = "boiler.log"
-logging.basicConfig(level=logging.INFO, filemode="a", filename = log_file, format = 'Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+logging.basicConfig(level=logging.INFO, filemode="a")
+
+f = logging.Formatter('Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+stdout = logging.StreamHandler(sys.stdout)
+boiler_log = logging.FileHandler(log_file)
+stdout.setFormatter(f)
+boiler_log.setFormatter(f)
+
 logger = logging.getLogger("GraphWindow")
-logger.addHandler(logging.FileHandler(log_file))
-logger.info("Graph window imported at {}".format(time.time()))
+logger.addHandler(boiler_log)
+logger.addHandler(stdout)
+logger.info("Program started at {}".format(time.time()))
 
 from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *

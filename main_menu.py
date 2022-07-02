@@ -73,9 +73,17 @@ import logging
 
 # Creates the global logger
 log_file = "boiler.log"
-logging.basicConfig(level=logging.INFO, filemode="a", filename = log_file, format='Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+logging.basicConfig(level=logging.INFO, filemode="a")
+
+f = logging.Formatter('Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+stdout = logging.StreamHandler(sys.stdout)
+boiler_log = logging.FileHandler(log_file)
+stdout.setFormatter(f)
+boiler_log.setFormatter(f)
+
 logger = logging.getLogger("MenuWindow")
-logger.addHandler(logging.FileHandler(log_file))
+logger.addHandler(boiler_log)
+logger.addHandler(stdout)
 logger.info("Program started at {}".format(time.time()))
 
 # from spectrograph import spectrograph_gui
