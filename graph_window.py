@@ -14,7 +14,9 @@ from Board import Board, get_board_id
 log_file = "boiler.log"
 logging.basicConfig(level=logging.INFO, filemode="a")
 
-f = logging.Formatter('Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+f = logging.Formatter(
+    "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
+)
 stdout = logging.StreamHandler(sys.stdout)
 boiler_log = logging.FileHandler(log_file)
 stdout.setFormatter(f)
@@ -73,10 +75,10 @@ class graph_win(QWidget):
         save_file=None,
         parent=None,
         board_id=None,
-        log_file = 'graph_win'+str(time.time())+'.log'
+        log_file="graph_win" + str(time.time()) + ".log",
     ):
         super().__init__()
-        logger.info('Initializing graph_win (Graph window)')
+        logger.info("Initializing graph_win (Graph window)")
         self.parent = parent
         self.sim_type = sim_type
         self.hardware = hardware
@@ -89,7 +91,7 @@ class graph_win(QWidget):
         self.board = Board(data_type, hardware, model, board_id)
 
         self.hardware_connected = True
-        logger.info('Hardware connected; stream started.')
+        logger.info("Hardware connected; stream started.")
 
         self.exg_channels = BoardShim.get_exg_channels(self.board_id)
         self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
@@ -99,7 +101,7 @@ class graph_win(QWidget):
 
         self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
-        logger.debug('EXG channels is {}'.format(self.exg_channels))
+        logger.debug("EXG channels is {}".format(self.exg_channels))
 
         # set up stuff to save our data
         # just a numpy array for now
@@ -140,14 +142,14 @@ class graph_win(QWidget):
             self.curves.append(curve)
 
     def update(self):
-        logger.debug('Graph window is updating')
+        logger.debug("Graph window is updating")
         data = self.board.get_new_data()
         # save data to our csv super quick
-        with open(self.save_file,'a') as csvfile:
-            data_to_save = data[BoardShim.get_exg_channels(self.board_id),:].T
-            logger.debug('data size {}'.format(data_to_save.shape))
+        with open(self.save_file, "a") as csvfile:
+            data_to_save = data[BoardShim.get_exg_channels(self.board_id), :].T
+            logger.debug("data size {}".format(data_to_save.shape))
             logger.debug(data_to_save)
-            np.savetxt(csvfile,data_to_save,delimiter = ',')
+            np.savetxt(csvfile, data_to_save, delimiter=",")
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
         # what is and isn't eeg. We will ignore non eeg and not save it
@@ -207,7 +209,9 @@ class graph_win(QWidget):
                 0,
             )
             self.curves[count].setData(data[channel].tolist())
-        logger.debug('Graph window finished updating (successfully got data from board and applied it to graphs)')
+        logger.debug(
+            "Graph window finished updating (successfully got data from board and applied it to graphs)"
+        )
 
     def closeEvent(self, event):
         self.timer.stop()
@@ -215,7 +219,7 @@ class graph_win(QWidget):
         self.board.stop()
         print(self.data.shape)
         print(self.data)
-        logger.info('Now closing graph window')
+        logger.info("Now closing graph window")
         self.close()
 
 

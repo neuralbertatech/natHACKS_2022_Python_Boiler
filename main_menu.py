@@ -76,7 +76,9 @@ from Board import get_board_id
 log_file = "boiler.log"
 logging.basicConfig(level=logging.INFO, filemode="a")
 
-f = logging.Formatter('Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s')
+f = logging.Formatter(
+    "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
+)
 stdout = logging.StreamHandler(sys.stdout)
 boiler_log = logging.FileHandler(log_file)
 stdout.setFormatter(f)
@@ -102,7 +104,6 @@ if sys.platform == "win32":
     from arduino_windows import ard_wind_on as ard_turn_on
 else:
     from arduino_mac import ard_mac_on as ard_turn_on
-
 
 
 # let's make a menu window class
@@ -378,8 +379,8 @@ class MenuWindow(QMainWindow):
 
         # choose directory for file saving
         save_directory = QFileDialog.getExistingDirectory()
-        self.csv_name = save_directory+'/'+self.csv_name
-        logger.info('Selected save location: {}'.format(self.csv_name))
+        self.csv_name = save_directory + "/" + self.csv_name
+        logger.info("Selected save location: {}".format(self.csv_name))
 
     def handle_type_choice(self):
         """Handles changes to the data type drop down."""

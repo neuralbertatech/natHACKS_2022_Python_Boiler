@@ -28,10 +28,12 @@ class Board:
         self.params = BrainFlowInputParams()
         self.hardware = hardware
         self.model = model
-        print(data_type, hardware, model)
-        self.board_id = get_board_id(data_type, hardware, model)
 
         # set board id based on parameters only if it wasn't given to us
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(data_type, hardware, model)
+        assert self.board_id is not None, "Error: Undefined combination of arguments passed to 'get_board_id'"
 
         for i in range(10):
             self.params.serial_port = "COM" + str(i)
