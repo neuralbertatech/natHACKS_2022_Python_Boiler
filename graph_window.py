@@ -94,6 +94,7 @@ class graph_win(QWidget):
         logger.info("Hardware connected; stream started.")
 
         self.exg_channels = BoardShim.get_exg_channels(self.board_id)
+        self.marker_channels = BoardShim.get_marker_channel(self.board_id)
         self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
         self.update_speed_ms = 50
         self.window_size = 4
@@ -101,7 +102,8 @@ class graph_win(QWidget):
 
         self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
-        logger.debug("EXG channels is {}".format(self.exg_channels))
+        self.marker_channels = np.array(self.marker_channels)
+        logger.debug('EXG channels is {}'.format(self.exg_channels))
 
         # set up stuff to save our data
         # just a numpy array for now
@@ -129,7 +131,7 @@ class graph_win(QWidget):
     def _init_timeseries(self):
         self.plots = list()
         self.curves = list()
-        for i in range(self.chan_num):
+        for i in range(self.chan_num+1):
             p = self.graphWidget.addPlot(row=i, col=0)
             p.showAxis("left", False)
             p.setMenuEnabled("left", False)
@@ -209,9 +211,9 @@ class graph_win(QWidget):
                 0,
             )
             self.curves[count].setData(data[channel].tolist())
-        logger.debug(
-            "Graph window finished updating (successfully got data from board and applied it to graphs)"
-        )
+        self.curves[len(self.exg_channels)].setData(data[self.marker_channels].tolist())
+        logger.debug('Marker channel data was {}'.format(data[self.marker_channels].tolist()))
+        logger.debug('Graph window finished updating (successfully got data from board and applied it to graphs)')
 
     def closeEvent(self, event):
         self.timer.stop()
