@@ -3,9 +3,8 @@ import brainflow
 import numpy as np
 
 # Actions
-FILE = "File"
-SIMULATE = "Simulate"
-CONNECT = "Connect"
+SIMULATE = "Task simulate"
+CONNECT = "Task live"
 
 # Hardware types
 MUSE = "Muse"
@@ -29,26 +28,10 @@ class Board:
         self.params = BrainFlowInputParams()
         self.hardware = hardware
         self.model = model
+        print(data_type, hardware, model)
+        self.board_id = get_board_id(data_type, hardware, model)
 
-        # set baord id based on parameters only if it wasn't given to us
-        if board_id == None:
-            if data_type == CONNECT:
-                if hardware == BCI:
-                    if model == GANGLION:
-                        self.board_id = 1
-                    elif model == CYTON:
-                        self.board_id = 0
-                    elif model == CYTON_DAISY:
-                        self.board_id = 2
-                elif hardware == MUSE:
-                    if model == MUSE_2:
-                        self.board_id = 22
-                    elif model == MUSE_S:
-                        self.board_id = 21
-            elif data_type == SIMULATE:
-                self.board_id = -1
-        else:
-            self.board_id = board_id
+        # set board id based on parameters only if it wasn't given to us
 
         for i in range(10):
             self.params.serial_port = "COM" + str(i)
@@ -76,3 +59,38 @@ class Board:
 
     def get_new_data(self):
         return self.board.get_current_board_data(self.num_points)
+
+    def stop(self):
+        self.board.stop_stream()
+        self.board.release_session()
+
+
+def get_board_id(data_type, hardware, model):
+    """Gets the brainflow board_id from the given arguments
+
+    Args:
+        data_type (String): A string of either "Task live" or "Task simulate"
+        hardware (String): A string of either "Muse" or "OpenBCI"
+        model (String): A string of either "Muse 2", "Muse S", "Ganglion", "Cyton", or "Cyton-Daisy"
+
+    Returns:
+        int: The board_id that brainflow uses internally to determine board type
+    """
+    board_id = None
+    if data_type == CONNECT:
+        if hardware == BCI:
+            if model == GANGLION:
+                board_id = 1
+            elif model == CYTON:
+                board_id = 0
+            elif model == CYTON_DAISY:
+                board_id = 2
+        elif hardware == MUSE:
+            if model == MUSE_2:
+                board_id = 22
+            elif model == MUSE_S:
+                board_id = 21
+    elif data_type == SIMULATE:
+        board_id = -1
+
+    return board_id

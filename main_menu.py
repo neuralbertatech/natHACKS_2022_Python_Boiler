@@ -69,6 +69,7 @@ import random
 import time
 import os
 import logging
+from Board import get_board_id
 
 
 # Creates the global logger
@@ -387,18 +388,7 @@ class MenuWindow(QMainWindow):
         if self.data_type == "Task live":
             self.title.setText("Select BCI Hardware Port")
             self.openbci_port.setEnabled(True)
-            if self.hardware == "openBCI":
-                if self.model == "Ganglion":
-                    self.board_id = 1
-                elif self.model == "Cyton":
-                    self.board_id = 0
-                elif self.model == "Cyton-Daisy":
-                    self.board_id = 2
-            elif self.hardware == "Muse":
-                if self.model == "Muse 2":
-                    self.board_id = 22
-                elif self.model == "Muse S":
-                    self.board_id = 21
+            self.board_id = get_board_id(self.data_type, self.hardware, self.model)
         elif self.data_type == "Task simulate":
             self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")

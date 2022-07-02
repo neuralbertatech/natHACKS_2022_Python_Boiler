@@ -9,6 +9,7 @@ import csv
 import random
 import pdb
 import logging
+from Board import Board, get_board_id
 
 log_file = "boiler.log"
 logging.basicConfig(level=logging.INFO, filemode="a")
@@ -83,68 +84,10 @@ class graph_win(QWidget):
         self.data_type = data_type
         # save file should be an ok file name to save to with approriate ending ('.csv')
         self.save_file = save_file
+        self.board_id = get_board_id(data_type, hardware, model)
 
-        # Brainflow Init
-        self.params = BrainFlowInputParams()
-        self.params.serial_port = serial_port
+        self.board = Board(data_type, hardware, model, board_id)
 
-        if self.parent.debug == True:
-            BoardShim.enable_dev_board_logger()
-
-        # set baord id based on parameters only if it wasn't given to us
-        if board_id == None:
-            logger.warning('Board id was not proved to graph window. Attempting to set based on hardware, model, and data type.')
-            if self.data_type == "Task live":
-                if self.hardware == "openBCI":
-                    if self.model == "Ganglion":
-                        self.board_id = 1
-                    elif self.model == "Cyton":
-                        self.board_id = 0
-                    elif self.model == "Cyton-Daisy":
-                        self.board_id = 2
-                elif self.hardware == "Muse":
-                    if self.model == "Muse 2":
-                        self.board_id = 22
-                    elif self.model == "Muse S":
-                        self.board_id = 21
-            elif self.data_type == "Task simulate":
-                self.board_id = -1
-        else:
-            self.board_id = board_id
-
-        logger.info('Graph window is starting to connect to hardware with board id {}. \n \
-        Board ID key: https://brainflow.readthedocs.io/en/stable/SupportedBoards.html'.format(self.board_id))
-
-        if self.params.serial_port == None:
-
-            logger.warning('COM port was not provided. Graph window is trying COM ports for board connection')
-            connected_yet = False
-            i = 0
-            search_num = 25
-            while i <= search_num and connected_yet == False:
-                self.params.serial_port = 'COM'+str(i)
-                self.board = BoardShim(self.board_id, self.params)
-                try:
-                    self.board.prepare_session()
-                except brainflow.board_shim.BrainFlowError as e:
-                    pass
-                else:
-                    logger.info('Graph window connected using com port COM{}'.format(i))
-                    # didn't have the bad com port exeption
-                    connected_yet = True
-                    break
-                i+=1
-            if connected_yet == False:
-                # if we're here, it didn't connect and we're out of COM ports
-                logger.error('Graph window failed to find a COM port for given hardware (board id: {}). \
-                    Please specify COM port manually or increase the number of COM ports searched (Currently {}).'.format(self.board_id,search_num))
-                raise Exception('Unable to find COM port to connect to hardware.')
-        else:
-            logger.info('Graph window is using {} port for board connection'.format(self.params.serial_port))
-            self.board = BoardShim(self.board_id, self.params)
-            self.board.prepare_session()
-
-        self.board.start_stream()
         self.hardware_connected = True
         logger.info('Hardware connected; stream started.')
 
@@ -198,7 +141,7 @@ class graph_win(QWidget):
 
     def update(self):
         logger.debug('Graph window is updating')
-        data = self.board.get_current_board_data(self.num_points)
+        data = self.board.get_new_data()
         # save data to our csv super quick
         with open(self.save_file,'a') as csvfile:
             data_to_save = data[BoardShim.get_exg_channels(self.board_id),:].T
@@ -269,8 +212,7 @@ class graph_win(QWidget):
     def closeEvent(self, event):
         self.timer.stop()
         print("close event runs")
-        self.board.stop_stream()
-        self.board.release_session()
+        self.board.stop()
         print(self.data.shape)
         print(self.data)
         logger.info('Now closing graph window')
