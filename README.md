@@ -20,17 +20,17 @@
 ### Build From Source
 
 Clone the repository
-```console
+```sh
 git clone https://github.com/neuralbertatech/natHACKS_2022_Python_Boiler
 ```
 
 Create a virtual environment to install the dependencies
-```console
+```sh
 python -m venv <Environment-Name>  # For example  $ python -m venv python_boiler
 ```
 
 Activate the virtual environment and install the dependencies
-```console
+```sh
 ./<Environment-Name>/Scripts/activate  # ./python_boiler/Scripts/activate
 pip install -r requirements.txt
 ```
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 ### Issues
 
-```console
+```sh
 $ python .\arduino_windows.py
 Traceback (most recent call last):
   File "C:\Users\zrsel\code\git\natHACKS_2022_Python_Boiler\test_python_boiler\lib\site-packages\pygatt\backends\bgapi\bgapi.py", line 32, in <module>
@@ -66,7 +66,7 @@ Traceback (most recent call last):
 AttributeError: module 'serial' has no attribute 'serialutil'
 ```
 
-```console
+```sh
 $ python .\baseline_window.py
 Traceback (most recent call last):
   File "C:\Users\zrsel\code\git\natHACKS_2022_Python_Boiler\baseline_window.py", line 339, in <module>
@@ -76,7 +76,7 @@ Traceback (most recent call last):
 TypeError: 'NoneType' object is not subscriptable
 ```
 
-```console
+```sh
 $ python .\graph_window.py
 Logger: GraphWindow: INFO at: 2022-07-04 21:14:45,080, line 28: Program started at 1656990885.079809
 INFO:GraphWindow:Program started at 1656990885.079809
@@ -92,7 +92,7 @@ Traceback (most recent call last):
 AssertionError: Error: Undefined combination of arguments passed to 'get_board_id'
 ```
 
-```console
+```sh
 $ python .\impedance_window.py
 Traceback (most recent call last):
   File "C:\Users\zrsel\code\git\natHACKS_2022_Python_Boiler\impedance_window.py", line 390, in <module>
@@ -102,7 +102,7 @@ Traceback (most recent call last):
 AttributeError: 'impedance_win' object has no attribute 'data_type'
 ```
 
-```console
+```sh
 $ python .\main_menu.py
 Logger: MenuWindow: INFO at: 2022-07-04 21:16:35,431, line 90: Program started at 1656990995.4310365
 INFO:MenuWindow:Program started at 1656990995.4310365
@@ -129,7 +129,7 @@ Traceback (most recent call last):
 AttributeError: module 'serial' has no attribute 'serialutil'
 ```
 
-```console
+```sh
 $ python .\model_window.py
 sampling rate: 250
 Traceback (most recent call last):
@@ -140,7 +140,7 @@ Traceback (most recent call last):
 AttributeError: 'NoneType' object has no attribute 'csv_name'
 ```
 
-```console
+```sh
 $ python .\session_window.py
 Traceback (most recent call last):
   File "C:\Users\zrsel\code\git\natHACKS_2022_Python_Boiler\test_python_boiler\lib\site-packages\pygatt\backends\bgapi\bgapi.py", line 32, in <module>
