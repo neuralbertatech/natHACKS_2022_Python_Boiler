@@ -27,12 +27,9 @@ logger.addHandler(boiler_log)
 logger.addHandler(stdout)
 logger.info("Program started at {}".format(time.time()))
 
-from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
-from PyQt5 import QtCore, Qt
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QPainter, QBrush, QPen, QPolygon
 
 import pyqtgraph as pg
 
@@ -75,7 +72,6 @@ class graph_win(QWidget):
         save_file=None,
         parent=None,
         board_id=None,
-        log_file="graph_win" + str(time.time()) + ".log",
     ):
         super().__init__()
         logger.info("Initializing graph_win (Graph window)")
@@ -123,7 +119,7 @@ class graph_win(QWidget):
 
         self._init_timeseries()
 
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.timer.setInterval(50)
         self.timer.timeout.connect(self.update)
         self.timer.start()
@@ -217,10 +213,9 @@ class graph_win(QWidget):
 
     def closeEvent(self, event):
         self.timer.stop()
-        print("close event runs")
         self.board.stop()
-        print(self.data.shape)
-        print(self.data)
+        logger.info(self.data.shape)
+        logger.info(self.data)
         logger.info("Now closing graph window")
         self.close()
 
