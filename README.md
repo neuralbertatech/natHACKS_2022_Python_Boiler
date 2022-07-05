@@ -1,3 +1,5 @@
+<img src="https://neuralberta.tech/images/event/natHACKs/nathanGlow.png" height="250">
+
 # NATHacks 2022 - Python Boiler
 
 **TODO: A short blob on what the project is**
@@ -17,7 +19,7 @@
 - Jupyter???
 
 
-### Build From Source
+### From Source
 
 Clone the repository
 ```sh
