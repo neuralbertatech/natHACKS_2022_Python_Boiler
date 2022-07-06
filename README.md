@@ -16,27 +16,35 @@
 
 - [Python](https://www.python.org/downloads/) 3.9 or above
 - [virtualenv](https://docs.python.org/3/library/venv.html)
+- All requirements within requirements.txt (refer to above for installation)
 - Jupyter???
 
 
 ### From Source
 
-Clone the repository
+Clone the repository:
 ```sh
 git clone https://github.com/neuralbertatech/natHACKS_2022_Python_Boiler
+cd natHACKS_2022_Python_Boiler
 ```
 
-Create a virtual environment to install the dependencies
+Create a virtual environment to install the dependencies:
 ```sh
 python -m venv <Environment-Name>  # For example  $ python -m venv python_boiler
 ```
 
-Activate the virtual environment and install the dependencies
+Activate the virtual environment and install the dependencies (Platform-Specific):
+#### Linux / MacOS (??????)
 ```sh
 ./<Environment-Name>/Scripts/activate  # ./python_boiler/Scripts/activate
 pip install -r requirements.txt
 ```
 
+### Windows (Powershell)
+```sh
+./<Environment-Name>/Scripts/Activate.ps1
+pip install -r requirements.txt
+```
 
 ## Getting Started
 
