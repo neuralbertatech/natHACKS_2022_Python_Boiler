@@ -234,13 +234,13 @@ class MenuWindow(QMainWindow):
             self.type_dropdown.setEnabled(False)  # start disabled
 
         ### PORT ###
-        self.openbci_label = QLabel("OpenBCI Serial Port")
-        self.openbci_port = QLineEdit()
-        self.openbci_port.setEnabled(False)
-        self.port_layout.addWidget(self.openbci_label)
-        self.port_layout.addWidget(self.openbci_port)
-        self.openbci_port.setPlaceholderText("Enter Port # (Integers Only)")
-        self.openbci_port.textEdited.connect(self.handle_bci_port)
+        self.bci_port_label = QLabel("BCI Serial Port")
+        self.bci_port = QLineEdit()
+        self.bci_port.setEnabled(False)
+        self.port_layout.addWidget(self.bci_port_label)
+        self.port_layout.addWidget(self.bci_port)
+        self.bci_port.setPlaceholderText("Enter Port # (Integers Only)")
+        self.bci_port.textEdited.connect(self.handle_bci_port)
         self.bci_serial_port = None  # if None gets passed to the graph window, it will look for a working port
 
         ### ARDUINO ###
@@ -357,7 +357,7 @@ class MenuWindow(QMainWindow):
         """Handles changes to the model dropdown"""
         # handle the choice of model by opening up data type selection
         self.model = self.model_dropdown.currentText()
-        self.openbci_port.setEnabled(False)
+        self.bci_port.setEnabled(False)
         self.type_dropdown.setEnabled(True)
         self.type_dropdown.setCurrentIndex(-1)
         self.title.setText("Select data type")
@@ -389,7 +389,7 @@ class MenuWindow(QMainWindow):
         self.data_type = self.type_dropdown.currentText()
         if self.data_type == "Task live":
             self.title.setText("Select BCI Hardware Port")
-            self.openbci_port.setEnabled(True)
+            self.bci_port.setEnabled(True)
             self.board_id = get_board_id(self.data_type, self.hardware, self.model)
         elif self.data_type == "Task simulate":
             self.impedance_window_button.setEnabled(True)
@@ -399,9 +399,9 @@ class MenuWindow(QMainWindow):
     def handle_bci_port(self):
         """Handles actions made within the bci_port text field"""
         # check for correct value entering and enable type dropdown menu
-        if self.openbci_port.text().isdigit():
+        if self.bci_port.text().isdigit():
             self.type_dropdown.setEnabled(True)
-            self.bci_serial_port = "COM" + self.openbci_port.text()
+            self.bci_serial_port = "COM" + self.bci_port.text()
             if self.data_type == "Task live":
                 self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")

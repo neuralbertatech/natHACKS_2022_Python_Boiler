@@ -84,21 +84,23 @@ class graph_win(QWidget):
         self.save_file = save_file
         self.board_id = get_board_id(data_type, hardware, model)
 
-        self.board = Board(data_type, hardware, model, board_id)
-
-        self.hardware_connected = True
-        logger.info("Hardware connected; stream started.")
-
         self.exg_channels = BoardShim.get_exg_channels(self.board_id)
         self.marker_channels = BoardShim.get_marker_channel(self.board_id)
         self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
         self.update_speed_ms = 50
-        self.window_size = 4
+        self.window_size = 5
         self.num_points = self.window_size * self.sampling_rate
+
+        self.board = Board(data_type, hardware, model, board_id, num_points = self.num_points)
+
+        self.hardware_connected = True
+        logger.info("Hardware connected; stream started.")
 
         self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
         self.marker_channels = np.array(self.marker_channels)
+        print('board decription {}'.format(BoardShim.get_board_descr(board_id)))
+
         logger.debug('EXG channels is {}'.format(self.exg_channels))
 
         # set up stuff to save our data
@@ -141,16 +143,20 @@ class graph_win(QWidget):
 
     def update(self):
         logger.debug("Graph window is updating")
+
+        # this is data to be saved. It is only new data since our last call
         data = self.board.get_new_data()
         # save data to our csv super quick
         with open(self.save_file, "a") as csvfile:
             data_to_save = data[BoardShim.get_exg_channels(self.board_id), :].T
-            logger.debug("data size {}".format(data_to_save.shape))
-            logger.debug(data_to_save)
+            logger.warning("data size {}".format(data_to_save.shape))
+            logger.warning(data_to_save)
             np.savetxt(csvfile, data_to_save, delimiter=",")
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
         # what is and isn't eeg. We will ignore non eeg and not save it
+        
+
         data_len = data.shape[1]
         if data_len + self.cur_line >= self.data_max_len:
             # we need to roll over and start at the beginning of the file
@@ -165,8 +171,10 @@ class graph_win(QWidget):
             self.data[self.cur_line : self.cur_line + data.shape[1], :] = data[
                 self.exg_channels, :
             ].T
-        self.cur_line = self.cur_line + data.shape[1]
+            self.cur_line = self.cur_line + data.shape[1]
 
+        # this is data to be graphed. It is the most recent data, of the length that we want to graph
+        data = self.board.get_data_quantity(self.num_points)
         for count, channel in enumerate(self.exg_channels):
             # plot timeseries
             DataFilter.detrend(data[channel], DetrendOperations.CONSTANT.value)
