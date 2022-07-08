@@ -364,22 +364,22 @@ class MenuWindow(QMainWindow):
 
     def csv_name_changed(self):
         """Handles changes to the csv_name text field."""
-        # this runs when the user hits enter on the text edit to set the name of the csv log file
-        # first we check if file already exists
-        print("text is {}".format(self.csv_name_edit.text()))
+        # Ensures that the file is a csv file (the format to be written)
         if not self.csv_name_edit.text().endswith(".csv"):
             # add .csv ending if absent
             self.csv_name_edit.setText(self.csv_name_edit.text() + ".csv")
-        print("csv name after adding ending {}".format(self.csv_name_edit.text()))
-        if os.path.isfile(self.csv_name_edit.text()):
-            # chop off .csv ending, add number, readd .csv
-            self.csv_name = self.csv_name_edit.text()[:-4] + "_1.csv"
-        else:
-            self.csv_name = self.csv_name_edit.text()
 
-        # choose directory for file saving
+        # Ensures that the filename does not exist on the system
+        filename = self.csv_name_edit.text()
+        if os.path.isfile(filename):
+            root = os.path.splitext(filename)[0]  # <name>.csv -> <name>
+            i = 1
+            while os.path.isfile(filename):
+                filename = f"{root}_{i}.csv"
+
+        # Prompts the user to select a directory for file saving
         save_directory = QFileDialog.getExistingDirectory()
-        self.csv_name = save_directory + "/" + self.csv_name
+        self.csv_name = os.path.join(save_directory, filename)
         logger.info("Selected save location: {}".format(self.csv_name))
 
     def handle_type_choice(self):
