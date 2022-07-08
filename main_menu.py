@@ -376,6 +376,7 @@ class MenuWindow(QMainWindow):
             i = 1
             while os.path.isfile(filename):
                 filename = f"{root}_{i}.csv"
+                i += 1
 
         # Prompts the user to select a directory for file saving
         save_directory = QFileDialog.getExistingDirectory()
