@@ -49,6 +49,8 @@ import numpy as np
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
 
+from Board import CONNECT, get_board_id
+
 
 class baseline_win(QWidget):
     def __init__(
@@ -84,16 +86,7 @@ class baseline_win(QWidget):
 
         self.com_port = None
 
-        if self.data_type == "Task live":
-            if self.hardware == "openBCI":
-                if self.model == "Ganglion":
-                    self.board_id = 1
-                elif self.model == "Cyton":
-                    self.board_id = 0
-                elif self.model == "Cyton-Daisy":
-                    self.board_id = 2
-        elif self.data_type == "Task simulate":
-            self.board_id = -1
+        self.board_id = get_board_id(self.data_type, self.hardware, self.model)
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
@@ -221,7 +214,7 @@ class baseline_win(QWidget):
         self.parent.hardware_dropdown.setEnabled(False)
         self.parent.model_dropdown.setEnabled(False)
         self.parent.type_dropdown.setEnabled(False)
-        if self.data_type == "Task live":
+        if self.data_type == CONNECT:
             self.parent.openbci_port.setEnabled(False)
 
         self.parent.title.setText("Train the Model")

@@ -26,6 +26,8 @@ from multiprocessing import Process, Queue
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
 
+from Board import Board, get_board_id
+
 SIMULATE = 0
 FILE = 1
 LIVESTREAM = 2
@@ -107,25 +109,9 @@ class impedance_win(QWidget):
 
         self.params = BrainFlowInputParams()
 
-        # set board id based on parameters only if it wasn't given to us
-        if board_id == None:
-            if self.data_type == "Task live":
-                if self.hardware == "openBCI":
-                    if self.model == "Ganglion":
-                        self.board_id = 1
-                    elif self.model == "Cyton":
-                        self.board_id = 0
-                    elif self.model == "Cyton-Daisy":
-                        self.board_id = 2
-                elif self.hardware == "Muse":
-                    if self.model == "Muse 2":
-                        self.board_id = 22
-                    elif self.model == "Muse S":
-                        self.board_id = 21
-            elif self.data_type == "Task simulate":
-                self.board_id = -1
-        else:
-            self.board_id = board_id
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(self.data_type, self.hardware, self.model)
 
         # Brainflow Initialization
 
@@ -190,10 +176,7 @@ class impedance_win(QWidget):
         # let's start eeg receiving!
         # self.start_data_stream()
 
-        self.board = BoardShim(self.board_id, self.params)
-        self.board.prepare_session()
-        self.chan_ind = self.board.get_exg_channels(self.board_id)
-        self.chan_num = len(self.chan_ind)
+        self.board = Board(board_id=self.board_id)
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
@@ -202,6 +185,8 @@ class impedance_win(QWidget):
 
         if self.board_id == 2:
             # this is eden's cyton daisy stuff
+            # This wild string puts Cyton-Daisy into impedance mode.
+            # DO NOT CHANGE
             # Think Pulse
             self.board.config_board(
                 "x1040010Xx2040010Xx3040010Xx4040010Xx5040010Xx6040010Xx7040010Xx8040010XxQ040010XxW040010XxE040010XxR040010XxT040010XxY040010XxU040010XxI040010X"

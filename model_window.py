@@ -15,6 +15,7 @@ import sys
 from io import StringIO
 from scipy import signal
 import numpy as np
+from Board import BCI, CYTON, CYTON_DAISY, GANGLION
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Dropout, Activation
 import tensorflow as tf
@@ -94,16 +95,16 @@ class model_win(QWidget):
         self.file_name = parent.csv_name
         self.csv_name_final = self.file_name + ".csv"
 
-        if self.hardware == "openBCI":
-            if self.model == "Ganglion":
+        if self.hardware == BCI:
+            if self.model == GANGLION:
                 self.chan_num = 4
                 self.drop_col = [0, *range(5, 31)]
                 self.col_names = [*("chan_{}".format(i) for i in range(1, 5)), "trig"]
-            elif self.model == "Cyton":
+            elif self.model == CYTON:
                 self.chan_num = 8
                 self.drop_col = [0, *range(9, 31)]
                 self.col_names = [*("chan_{}".format(i) for i in range(1, 9)), "trig"]
-            elif self.model == "Cyton-Daisy":
+            elif self.model == CYTON_DAISY:
                 self.chan_num = 16
                 self.drop_col = [0, *range(17, 31)]
                 self.col_names = [*("chan_{}".format(i) for i in range(1, 17)), "trig"]

@@ -63,6 +63,8 @@ import asyncio
 
 from scipy.signal import butter, lfilter, freqz, hilbert, chirp
 
+from Board import get_board_id
+
 SIMULATE = 0
 FILE = 1
 LIVESTREAM = 2
@@ -110,19 +112,9 @@ class session_win(QWidget):
 
         self.data = []
 
-        if board_id == None:
-            if self.data_type == "Task live":
-                if self.hardware == "openBCI":
-                    if self.model == "Ganglion":
-                        self.board_id = 1
-                    elif self.model == "Cyton":
-                        self.board_id = 0
-                    elif self.model == "Cyton-Daisy":
-                        self.board_id = 2
-            elif self.data_type == "Task simulate":
-                self.board_id = -1
-        else:
-            self.board_id = board_id
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(self.data_type, self.hardware, self.model)
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))

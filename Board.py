@@ -8,7 +8,7 @@ CONNECT = "Task live"
 
 # Hardware types
 MUSE = "Muse"
-BCI = "OpenBCI"
+BCI = "openBCI"
 
 # Model types
 GANGLION = "Ganglion"
