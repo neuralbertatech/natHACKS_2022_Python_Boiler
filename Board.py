@@ -18,14 +18,55 @@ MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 
 
-class Board:
-    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False, num_points=None):
+def get_serial_port(board_id):
+    params = BrainFlowInputParams()
+    for i in range(10):
+        params.serial_port = "COM" + str(i)
+        board = BoardShim(board_id, params)
+        try:
+            board.prepare_session()
+        except brainflow.board_shim.BrainFlowError:
+            pass
+        else:
+            # didn't have the bad com port exeption
+            return params.serial_port
+
+    return ""
+
+
+class Board(BoardShim):
+    def __init__(
+        self,
+        data_type="",
+        hardware="",
+        model="",
+        board_id=None,
+        debug=False,
+        num_points=None,
+    ):
+        # Establish parameters
+        self.params = BrainFlowInputParams()
+        # set board id based on parameters only if it wasn't given to us
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(data_type, hardware, model)
+
+        # Ensure board_id was set correctly
+        assert (
+            self.board_id is not None
+        ), "Error: Undefined combination of arguments passed to 'get_board_id'"
+
+        # Get com port for EEG device
+        self.params.serial_port = get_serial_port(self.board_id)
+
+        # Initialize BoardShim object
+        super().__init__(self.board_id, self.params)
+
         if debug == True:
             BoardShim.enable_dev_board_logger()
             serial_port = "COM1"
 
         # Brainflow Init
-        self.params = BrainFlowInputParams()
         self.hardware = hardware
         self.model = model
         if num_points == None:
@@ -35,27 +76,10 @@ class Board:
         else:
             self.num_points = num_points
 
-        # set board id based on parameters only if it wasn't given to us
-        self.board_id = board_id
-        if self.board_id is None:
-            self.board_id = get_board_id(data_type, hardware, model)
-        assert self.board_id is not None, "Error: Undefined combination of arguments passed to 'get_board_id'"
-
-        for i in range(10):
-            self.params.serial_port = "COM" + str(i)
-            self.board = BoardShim(self.board_id, self.params)
-            try:
-                self.board.prepare_session()
-            except brainflow.board_shim.BrainFlowError:
-                pass
-            else:
-                # didn't have the bad com port exeption
-                break
-
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
-        self.board.start_stream()
+        self.start_stream()
 
         exg_channels = BoardShim.get_exg_channels(self.board_id)
         sampling_rate = BoardShim.get_sampling_rate(self.board_id)
@@ -66,30 +90,33 @@ class Board:
         self.last_board_data_count = 0
 
     def get_new_data(self):
-        '''
-        check how much data has been addedto the ringbuffer since last call (to this function) and grab that much data
-        '''
-        new_board_data_count = self.board.get_board_data_count()
-        count_diff = new_board_data_count-self.last_board_data_count
+        """
+        Check how much data has been added to the ringbuffer since last call (to this function) and grab that much data
+        """
+        new_board_data_count = self.get_board_data_count()
+        count_diff = new_board_data_count - self.last_board_data_count
         self.last_board_data_count = new_board_data_count
-        return self.board.get_current_board_data(count_diff)
-    
-    def get_data_quantity(self,num_points=None):
-        '''
+        return self.get_current_board_data(count_diff)
+
+    def get_data_quantity(self, num_points=None):
+        """
         Get only a specified amount of most recent board data
         If num_points is not specified, will use the num_points given on init.
         If not specified on init, will produced error.
-        '''
+        """
         if num_points == None:
             if self.num_points == None:
-                raise Exception('Data quantity unspecfied. Please specify as an argument or when creating the board.')
+                raise Exception(
+                    "Data quantity unspecfied. Please specify as an argument or when creating the board."
+                )
             else:
                 num_points = self.num_points
-        return self.board.get_current_board_data(num_points)
+        return self.get_current_board_data(num_points)
 
     def stop(self):
-        self.board.stop_stream()
-        self.board.release_session()
+        """Stops the stream and releases the session all at once"""
+        self.stop_stream()
+        self.release_session()
 
 
 def get_board_id(data_type, hardware, model):
