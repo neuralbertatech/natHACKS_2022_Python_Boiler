@@ -69,7 +69,7 @@ import random
 import time
 import os
 import logging
-from Board import get_board_id
+from Board import BCI, CONNECT, CYTON, CYTON_DAISY, GANGLION, MUSE, MUSE_2, MUSE_S, SIMULATE, get_board_id
 
 
 # Creates the global logger
@@ -194,7 +194,7 @@ class MenuWindow(QMainWindow):
         # drop down menu to decide what hardware
         self.hardware_dropdown = QComboBox()
         self.hardware_dropdown.setPlaceholderText("Select hardware")
-        self.hardware_dropdown.addItems(["openBCI", "Muse"])
+        self.hardware_dropdown.addItems([BCI, MUSE])
         self.hardware_dropdown.activated.connect(self.handle_hardware_choice)
         self.hardware_label = QLabel("Select hardware")
         self.hardware_layout.addWidget(self.hardware_label)
@@ -223,7 +223,7 @@ class MenuWindow(QMainWindow):
         # drop down menu for simulate or live (previously included file step through)
         self.type_dropdown = QComboBox()
         self.type_dropdown.setPlaceholderText("Select data type")
-        self.type_dropdown.addItems(["Task live", "Task simulate"])
+        self.type_dropdown.addItems([CONNECT, SIMULATE])
         self.type_dropdown.activated.connect(self.handle_type_choice)
         self.type_label = QLabel("Select data type")
         self.type_layout.addWidget(self.type_label)
@@ -234,13 +234,13 @@ class MenuWindow(QMainWindow):
             self.type_dropdown.setEnabled(False)  # start disabled
 
         ### PORT ###
-        self.openbci_label = QLabel("OpenBCI Serial Port")
-        self.openbci_port = QLineEdit()
-        self.openbci_port.setEnabled(False)
-        self.port_layout.addWidget(self.openbci_label)
-        self.port_layout.addWidget(self.openbci_port)
-        self.openbci_port.setPlaceholderText("Enter Port # (Integers Only)")
-        self.openbci_port.textEdited.connect(self.handle_bci_port)
+        self.bci_port_label = QLabel("BCI Serial Port")
+        self.bci_port = QLineEdit()
+        self.bci_port.setEnabled(False)
+        self.port_layout.addWidget(self.bci_port_label)
+        self.port_layout.addWidget(self.bci_port)
+        self.bci_port.setPlaceholderText("Enter Port # (Integers Only)")
+        self.bci_port.textEdited.connect(self.handle_bci_port)
         self.bci_serial_port = None  # if None gets passed to the graph window, it will look for a working port
 
         ### ARDUINO ###
@@ -346,10 +346,10 @@ class MenuWindow(QMainWindow):
         self.type_dropdown.setCurrentIndex(-1)
         self.title.setText("Select model")
         self.model_dropdown.clear()
-        if self.hardware_dropdown.currentText() == "openBCI":
-            self.model_dropdown.addItems(["Ganglion", "Cyton", "Cyton-Daisy"])
-        elif self.hardware_dropdown.currentText() == "Muse":
-            self.model_dropdown.addItems(["Muse 2", "Muse S"])
+        if self.hardware_dropdown.currentText() == BCI:
+            self.model_dropdown.addItems([GANGLION, CYTON, CYTON_DAISY])
+        elif self.hardware_dropdown.currentText() == MUSE:
+            self.model_dropdown.addItems([MUSE_2, MUSE_S])
         elif self.hardware_dropdown.currentText() == "Blueberry":
             self.model_dropdown.addItem("Prototype")
 
@@ -357,7 +357,7 @@ class MenuWindow(QMainWindow):
         """Handles changes to the model dropdown"""
         # handle the choice of model by opening up data type selection
         self.model = self.model_dropdown.currentText()
-        self.openbci_port.setEnabled(False)
+        self.bci_port.setEnabled(False)
         self.type_dropdown.setEnabled(True)
         self.type_dropdown.setCurrentIndex(-1)
         self.title.setText("Select data type")
@@ -387,12 +387,11 @@ class MenuWindow(QMainWindow):
         """Handles changes to the data type drop down."""
         # handle the choice of data type
         self.data_type = self.type_dropdown.currentText()
-        if self.data_type == "Task live":
+        if self.data_type == CONNECT:
             self.title.setText("Select BCI Hardware Port")
-            self.openbci_port.setEnabled(True)
+            self.bci_port.setEnabled(True)
             self.board_id = get_board_id(self.data_type, self.hardware, self.model)
-            logger.warning('Board id is now {}'.format(self.board_id))
-        elif self.data_type == "Task simulate":
+        elif self.data_type == SIMULATE:
             self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")
             self.board_id = -1
@@ -400,10 +399,10 @@ class MenuWindow(QMainWindow):
     def handle_bci_port(self):
         """Handles actions made within the bci_port text field"""
         # check for correct value entering and enable type dropdown menu
-        if self.openbci_port.text().isdigit():
+        if self.bci_port.text().isdigit():
             self.type_dropdown.setEnabled(True)
-            self.bci_serial_port = "COM" + self.openbci_port.text()
-            if self.data_type == "Task live":
+            self.bci_serial_port = "COM" + self.bci_port.text()
+            if self.data_type == CONNECT:
                 self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")
         else:
@@ -520,7 +519,7 @@ class MenuWindow(QMainWindow):
             )
             return False
             # TODO: Check if simulation file exists, alert if not true
-        elif self.data_type == "Task simulate" and self.csv_name is None:
+        elif self.data_type == SIMULATE and self.csv_name is None:
             logger.warning(
                 "CSV file to read for simulation is not provided. Please fix before running graph."
             )

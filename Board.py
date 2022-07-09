@@ -13,13 +13,13 @@ BCI = "openBCI"
 # Model types
 GANGLION = "Ganglion"
 CYTON = "Cyton"
-CYTON_DAISY = "Cytom-Daisy"
+CYTON_DAISY = "Cyton-Daisy"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 
 
 class Board:
-    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False):
+    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False, num_points=None):
         if debug == True:
             BoardShim.enable_dev_board_logger()
             serial_port = "COM1"
@@ -28,6 +28,12 @@ class Board:
         self.params = BrainFlowInputParams()
         self.hardware = hardware
         self.model = model
+        if num_points == None:
+            self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
+            window_size = 4
+            self.num_points = window_size * self.sampling_rate
+        else:
+            self.num_points = num_points
 
         # set board id based on parameters only if it wasn't given to us
         self.board_id = board_id
@@ -53,14 +59,33 @@ class Board:
 
         exg_channels = BoardShim.get_exg_channels(self.board_id)
         sampling_rate = BoardShim.get_sampling_rate(self.board_id)
-        window_size = 4
-        self.num_points = window_size * sampling_rate
 
         self.chan_num = len(exg_channels)
         self.exg_channels = np.array(exg_channels)
 
+        self.last_board_data_count = 0
+
     def get_new_data(self):
-        return self.board.get_current_board_data(self.num_points)
+        '''
+        check how much data has been addedto the ringbuffer since last call (to this function) and grab that much data
+        '''
+        new_board_data_count = self.board.get_board_data_count()
+        count_diff = new_board_data_count-self.last_board_data_count
+        self.last_board_data_count = new_board_data_count
+        return self.board.get_current_board_data(count_diff)
+    
+    def get_data_quantity(self,num_points=None):
+        '''
+        Get only a specified amount of most recent board data
+        If num_points is not specified, will use the num_points given on init.
+        If not specified on init, will produced error.
+        '''
+        if num_points == None:
+            if self.num_points == None:
+                raise Exception('Data quantity unspecfied. Please specify as an argument or when creating the board.')
+            else:
+                num_points = self.num_points
+        return self.board.get_current_board_data(num_points)
 
     def stop(self):
         self.board.stop_stream()
