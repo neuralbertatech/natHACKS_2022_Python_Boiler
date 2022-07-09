@@ -391,6 +391,7 @@ class MenuWindow(QMainWindow):
             self.title.setText("Select BCI Hardware Port")
             self.openbci_port.setEnabled(True)
             self.board_id = get_board_id(self.data_type, self.hardware, self.model)
+            logger.warning('Board id is now {}'.format(self.board_id))
         elif self.data_type == "Task simulate":
             self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")

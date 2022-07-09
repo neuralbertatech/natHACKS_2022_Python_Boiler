@@ -10,6 +10,7 @@ import random
 import pdb
 import logging
 from Board import Board, get_board_id
+from utils.save_to_csv import save_to_csv
 
 log_file = "boiler.log"
 logging.basicConfig(level=logging.INFO, filemode="a")
@@ -143,11 +144,7 @@ class graph_win(QWidget):
         logger.debug("Graph window is updating")
         data = self.board.get_new_data()
         # save data to our csv super quick
-        with open(self.save_file, "a") as csvfile:
-            data_to_save = data[BoardShim.get_exg_channels(self.board_id), :].T
-            logger.debug("data size {}".format(data_to_save.shape))
-            logger.debug(data_to_save)
-            np.savetxt(csvfile, data_to_save, delimiter=",")
+        save_to_csv(data,self.save_file,BoardShim.get_exg_channels(self.board_id),logger)
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
         # what is and isn't eeg. We will ignore non eeg and not save it
