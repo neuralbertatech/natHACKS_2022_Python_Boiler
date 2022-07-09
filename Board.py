@@ -8,12 +8,12 @@ CONNECT = "Task live"
 
 # Hardware types
 MUSE = "Muse"
-BCI = "OpenBCI"
+BCI = "openBCI"
 
 # Model types
 GANGLION = "Ganglion"
 CYTON = "Cyton"
-CYTON_DAISY = "Cytom-Daisy"
+CYTON_DAISY = "Cyton-Daisy"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 

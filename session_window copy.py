@@ -48,6 +48,7 @@ import sys
 from io import StringIO
 from scipy import signal
 import numpy as np
+from Board import get_board_id
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Dropout, Activation
 import tensorflow as tf
@@ -107,16 +108,7 @@ class session_win(QWidget):
 
         self.data = []
 
-        if self.data_type == "Task live":
-            if self.hardware == "openBCI":
-                if self.model == "Ganglion":
-                    self.board_id = 1
-                elif self.model == "Cyton":
-                    self.board_id = 0
-                elif self.model == "Cyton-Daisy":
-                    self.board_id = 2
-        elif self.data_type == "Task simulate":
-            self.board_id = -1
+        self.board_id = get_board_id(self.data_type, self.hardware, self.model)
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
