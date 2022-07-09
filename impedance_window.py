@@ -108,6 +108,7 @@ class impedance_win(QWidget):
         # number of channel options is based on the model
 
         self.params = BrainFlowInputParams()
+        self.params.serial_port = serial_port
 
         self.board_id = board_id
         if self.board_id is None:
@@ -207,14 +208,16 @@ class impedance_win(QWidget):
             # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
             # expected result: 5 seconds of resistance data(unknown sampling rate) after that 5 seconds of exg data
             self.board.config_board("z")
+            print('sent board z, not yet start stream')
             self.board.start_stream(45000, None)
             time.sleep(5)
+            print('abbout to send board Z')
             self.board.config_board("Z")
             time.sleep(5)
             data = self.board.get_board_data()
 
-            self.board.stop_stream ()
-            self.board.release_session ()
+            # self.board.stop_stream ()
+            # self.board.release_session ()
 
             print (data)
 
@@ -251,12 +254,13 @@ class impedance_win(QWidget):
             self.data = (
                 self.board.get_board_data()
             )  # will need to be a consist number of samples
+            self.impedances = list(range(self.chan_num))
             for i in range(self.chan_num):
                 # average with the prevous x number of fft data
                 # but this isn't fft - so wtf
                 self.filter_custom(i)
                 # print(len(self.data[i,:]))
-                # current is togging on and off at 31.5 hz (maybe)
+                # current is toggling on and off at 31.5 hz (maybe)
                 # so observed voltage should be a sine wave. ideally, we would find its amplitude but I'm lazy
                 # use stdev as proxy.
                 chan_std_uV = stats.stdev(self.data[i,:])
