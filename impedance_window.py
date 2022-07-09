@@ -109,7 +109,9 @@ class impedance_win(QWidget):
 
         self.params = BrainFlowInputParams()
 
-        self.board_id = get_board_id(self.data_type, self.hardware, self.model)
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(self.data_type, self.hardware, self.model)
 
         # Brainflow Initialization
 
