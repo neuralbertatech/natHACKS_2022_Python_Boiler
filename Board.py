@@ -18,8 +18,8 @@ MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 
 
-class Board:
-    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False, num_points=None):
+class Board():
+    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False, num_points=None, manual_mode = False):
         if debug == True:
             BoardShim.enable_dev_board_logger()
             serial_port = "COM1"
@@ -27,19 +27,20 @@ class Board:
         # Brainflow Init
         self.params = BrainFlowInputParams()
         self.hardware = hardware
-        self.model = model
-        if num_points == None:
-            self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
-            window_size = 4
-            self.num_points = window_size * self.sampling_rate
-        else:
-            self.num_points = num_points
+        self.model = model 
 
         # set board id based on parameters only if it wasn't given to us
         self.board_id = board_id
         if self.board_id is None:
             self.board_id = get_board_id(data_type, hardware, model)
         assert self.board_id is not None, "Error: Undefined combination of arguments passed to 'get_board_id'"
+
+        if num_points == None:
+            self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
+            window_size = 4
+            self.num_points = window_size * self.sampling_rate
+        else:
+            self.num_points = num_points
 
         for i in range(10):
             self.params.serial_port = "COM" + str(i)
@@ -55,7 +56,8 @@ class Board:
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
-        self.board.start_stream()
+        if not manual_mode:
+            self.board.start_stream()
 
         exg_channels = BoardShim.get_exg_channels(self.board_id)
         sampling_rate = BoardShim.get_sampling_rate(self.board_id)

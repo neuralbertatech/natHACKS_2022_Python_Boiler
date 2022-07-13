@@ -30,7 +30,7 @@ import sys
 import time
 import csv
 import random
-
+import logging
 from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
 from PyQt5 import QtCore, Qt
@@ -51,6 +51,22 @@ from brainflow.data_filter import DataFilter, FilterTypes
 
 from Board import CONNECT, get_board_id
 
+log_file = "boiler.log"
+logging.basicConfig(level=logging.INFO, filemode="a")
+
+f = logging.Formatter(
+    "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
+)
+stdout = logging.StreamHandler(sys.stdout)
+boiler_log = logging.FileHandler(log_file)
+stdout.setFormatter(f)
+boiler_log.setFormatter(f)
+
+logger = logging.getLogger("BaselineWindow")
+logger.addHandler(boiler_log)
+logger.addHandler(stdout)
+logger.info("Program started at {}".format(time.time()))
+
 
 class baseline_win(QWidget):
     def __init__(
@@ -62,6 +78,7 @@ class baseline_win(QWidget):
         csv_name=None,
         parent=None,
         serial_port=None,
+        board_id = None
     ):
         super().__init__()
 
@@ -86,7 +103,11 @@ class baseline_win(QWidget):
 
         self.com_port = None
 
-        self.board_id = get_board_id(self.data_type, self.hardware, self.model)
+        if board_id == None:
+            self.board_id = get_board_id(self.data_type, self.hardware, self.model)
+        else:
+            self.board_id = board_id
+
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
@@ -112,6 +133,7 @@ class baseline_win(QWidget):
 
         # let's start eeg receiving!
         # self.start_data_stream()
+        logger.info("board id {} params {}".format(self.board_id,self.params))
         self.board = BoardShim(self.board_id, self.params)
         self.board.prepare_session()
         print(
@@ -330,5 +352,5 @@ class baseline_win(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = baseline_win()
-    win.show()
+    win.show(csv_name ='baseline.csv',board_id =1,serial_port = 'COM3')
     sys.exit(app.exec())

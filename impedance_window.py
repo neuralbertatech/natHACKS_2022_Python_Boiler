@@ -177,7 +177,7 @@ class impedance_win(QWidget):
         # let's start eeg receiving!
         # self.start_data_stream()
 
-        self.board = Board(board_id=self.board_id)
+        self.board = Board(board_id=self.board_id, manual_mode = True)
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
@@ -189,32 +189,32 @@ class impedance_win(QWidget):
             # This wild string puts Cyton-Daisy into impedance mode.
             # DO NOT CHANGE
             # Think Pulse
-            self.board.config_board(
+            self.board.board.config_board(
                 "x1040010Xx2040010Xx3040010Xx4040010Xx5040010Xx6040010Xx7040010Xx8040010XxQ040010XxW040010XxE040010XxR040010XxT040010XxY040010XxU040010XxI040010X"
             )
             # Reinitialize the 15/16 channel for EOG
             # board.config_board("xU060100XxI060100X")
 
-            res = self.board.config_board(
+            res = self.board.board.config_board(
                 "z110Zz210Zz310Zz410Zz510Zz610Zz710Zz810Zzq10Zzw10Zze10Zzr10Zzt10Zzy10Zzu10Zzi10Z"
             )
             print(res)
 
-            self.board.start_stream(45000, None)
+            self.board.board.start_stream(45000, None)
             self.impedances = [0] * self.chan_num
 
         elif self.board_id == 1:
             # ganglion impedances based on
             # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
             # expected result: 5 seconds of resistance data(unknown sampling rate) after that 5 seconds of exg data
-            self.board.config_board("z")
+            self.board.board.config_board("z")
             print('sent board z, not yet start stream')
-            self.board.start_stream(45000, None)
+            self.board.board.start_stream(45000, None)
             time.sleep(5)
             print('abbout to send board Z')
-            self.board.config_board("Z")
+            self.board.board.config_board("Z")
             time.sleep(5)
-            data = self.board.get_board_data()
+            data = self.board.board.get_board_data()
 
             # self.board.stop_stream ()
             # self.board.release_session ()
@@ -263,7 +263,7 @@ class impedance_win(QWidget):
                 # current is toggling on and off at 31.5 hz (maybe)
                 # so observed voltage should be a sine wave. ideally, we would find its amplitude but I'm lazy
                 # use stdev as proxy.
-                chan_std_uV = stats.stdev(self.data[i,:])
+                chan_rms_uV = np.sqrt(np.sum(self.data ** 2))
                 self.impedances[i] = ((stats.sqrt( 2.0 ) * (chan_std_uV) * 1.0e-6) / 6.0e-9 - 2200)/1000
             print(self.impedances)
             """
@@ -370,8 +370,7 @@ class impedance_win(QWidget):
             pass
 
     def on_end(self):
-        self.board.stop_stream()
-        self.board.release_session()
+        self.board.stop()
 
 
 if __name__ == "__main__":
