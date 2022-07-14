@@ -49,7 +49,7 @@ import numpy as np
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
 
-from Board import CONNECT, get_board_id
+from Board import CONNECT, Board, get_board_id
 
 log_file = "boiler.log"
 logging.basicConfig(level=logging.INFO, filemode="a")
@@ -118,7 +118,6 @@ class baseline_win(QWidget):
         # init layout
         self.layout = QGridLayout()
         self.setLayout(self.layout)
-        # self.layout.setContentsMargins(100,100,100,100)
 
         self.stim_type = {"left": 1, "right": 2}
 
@@ -132,14 +131,7 @@ class baseline_win(QWidget):
         self.stim_str = ["Left Arm", "Right Arm"]
 
         # let's start eeg receiving!
-        # self.start_data_stream()
-        logger.info("board id {} params {}".format(self.board_id,self.params))
-        self.board = BoardShim(self.board_id, self.params)
-        self.board.prepare_session()
-        print(
-            "init hardware is running with hardware", self.hardware, "model", self.model
-        )
-        self.board.start_stream()
+        self.board = Board(board_id=self.board_id)
         self.hardware_connected = True
 
         # now we can init stuff for our trials
@@ -151,7 +143,7 @@ class baseline_win(QWidget):
             self.stim_type["right"]
         ] * right_trials
         random.shuffle(self.trials)
-        print("trials {}".format(self.trials))
+        logging.info("trials {}".format(self.trials))
         self.curr_trial = 0
         # this is whether or not we've gone through all our trials yet
         self.finished = False
@@ -188,46 +180,30 @@ class baseline_win(QWidget):
         self.is_end = False
 
     def start_stim(self):
-        print("starting stim")
+        logging.info("starting stim")
         self.show_stim = True
         stim_wait = time.time()
         self.responding_time = True
         self.board.insert_marker(self.stim_code)
-        print("debug")
+        logging.info("debug")
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.end_stim)
         self.stim_timer.start(1000)
         self.update()
-        # while time.time() - stim_wait <= self.stim_wait_max:
-        #     time.sleep(0.001)# print(time.time() - stim_wait)
-        #     # print(self.stim_wait_max)
-        # print('for loop over')
-        # self.responding_time = False
-        # self.end_stim()
 
     def end_stim(self):
-        print("ending stim")
+        logging.info("ending stim")
         self.responding_time = False
         self.show_stim = False
         self.board.insert_marker(self.end_trig)
-        # self.data = self.board.get_board_data()
-        # print(self.data)
         self.update()
-        # time.sleep(1)
 
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.start_trial)
-        # self.bw_trial_timer.timeout.connect(self.start_trial)
-        # self.bw_trial_timer.start(1000)
         self.stim_timer.start(1000)
 
-        # if self.finished:
-        #     self.on_end()
-        # else:
-        #     self.start_trial()
-
     def on_end(self):
-        print("stop eeg stream ran")
+        logging.info("stop eeg stream ran")
 
         ### Allow user to train model
         self.parent.model_window_button.setEnabled(True)
@@ -263,38 +239,32 @@ class baseline_win(QWidget):
 
     def start_trial(self):
         # starts trial - starts timers.
-        print("starting trial")
+        logging.info("starting trial")
         self.running_trial = True
         # setting current color and stim code based on value for current trial
-        print(self.curr_trial)
-        # self.color = self.trials[self.curr_trial][0]
+        logging.info(self.curr_trial)
         self.stim_code = self.trials[self.curr_trial]
         time.sleep(0.5)
-        # print("curr: " + str(self.curr_trial) + " < " + str(self.total_trials))
+
         if self.curr_trial < self.total_trials - 1:
             self.curr_trial += 1
             self.start_stim()
         else:
-            print("all trials done")
+            logging.info("all trials done")
             self.finished = True
             self.board.insert_marker(self.end_trig)
             self.on_end()
 
-    # def global_update(self):
-    #     global count
-    #     count += 1
-    #     self.update()
-
     def keyPressEvent(self, event):
         if event.key() == Qt.Qt.Key_Space:
             if self.responding_time == True:
-                print("received user input during correct time")
+                logging.info("received user input during correct time")
                 self.board.insert_marker(3)
             else:
-                print("received user input during incorrect time")
+                logging.info("received user input during incorrect time")
 
         elif event.key() == Qt.Qt.Key_Return or event.key == Qt.Qt.Key_Enter:
-            print(
+            logging.info(
                 "hardware {} running trial {}".format(
                     self.hardware_connected, self.running_trial
                 )
@@ -306,10 +276,10 @@ class baseline_win(QWidget):
     def paintEvent(self, event):
         # here is where we draw stuff on the screen
         # you give drawing instructions in pixels - here I'm getting pixel values based on window size
-        print("paint event runs")
+        logging.info("paint event runs")
         painter = QPainter(self)
         if self.show_stim:
-            print("painting stim")
+            logging.info("painting stim")
             center = self.geometry().width() // 2
             textWidth = 200
             textHeight = 100
