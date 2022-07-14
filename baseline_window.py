@@ -78,7 +78,7 @@ class baseline_win(QWidget):
         csv_name=None,
         parent=None,
         serial_port=None,
-        board_id = None
+        board_id=None,
     ):
         super().__init__()
 
@@ -107,7 +107,6 @@ class baseline_win(QWidget):
             self.board_id = get_board_id(self.data_type, self.hardware, self.model)
         else:
             self.board_id = board_id
-
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
@@ -322,5 +321,5 @@ class baseline_win(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = baseline_win()
-    win.show(csv_name ='baseline.csv',board_id =1,serial_port = 'COM3')
+    win.show(csv_name="baseline.csv", board_id=1, serial_port="COM3")
     sys.exit(app.exec())
