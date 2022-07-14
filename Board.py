@@ -19,6 +19,16 @@ MUSE_S = "Muse S"
 
 
 def get_serial_port(board_id):
+    """Gets the working COM port for the device on which this script
+    is running.
+
+    Args:
+        board_id (Integer): Brainflow's board_id for the board which is trying to connect.
+
+    Returns:
+        String: The serial port to connect to the device, in the form "COM#". If no port exists,
+        an empty string is returned.
+    """
     params = BrainFlowInputParams()
     for i in range(10):
         params.serial_port = "COM" + str(i)
@@ -26,6 +36,7 @@ def get_serial_port(board_id):
         try:
             board.prepare_session()
         except brainflow.board_shim.BrainFlowError:
+            # This port doesn't work, continue trying
             pass
         else:
             # didn't have the bad com port exeption
@@ -69,7 +80,7 @@ class Board(BoardShim):
         # Brainflow Init
         self.hardware = hardware
         self.model = model
-        if num_points == None:
+        if num_points is None:
             self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
             window_size = 4
             self.num_points = window_size * self.sampling_rate
@@ -104,8 +115,8 @@ class Board(BoardShim):
         If num_points is not specified, will use the num_points given on init.
         If not specified on init, will produced error.
         """
-        if num_points == None:
-            if self.num_points == None:
+        if num_points is None:
+            if self.num_points is None:
                 raise Exception(
                     "Data quantity unspecfied. Please specify as an argument or when creating the board."
                 )
