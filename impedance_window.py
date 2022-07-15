@@ -228,6 +228,8 @@ class impedance_win(QWidget):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
         print("close event works")
+        self.finished = True
+        self.parent.impedance_window_open = False
         self.on_end()
 
 
@@ -273,8 +275,6 @@ class impedance_win(QWidget):
             self.loop_start()
         else:
             print("exiting")
-            time.sleep(2)
-            self.on_end()
 
     def filter_custom(self, chan):
         DataFilter.perform_highpass(
