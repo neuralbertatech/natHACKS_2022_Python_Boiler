@@ -455,8 +455,7 @@ class MenuWindow(QMainWindow):
                 arduino_port=self.arduino_serial_port,
             )
             self.data_window.show()
-            self.data_window.show()
-            self.is_data_window_open = True
+            self.data_window_open = True
             logger.info("created arduino window")
 
     def open_impedance_window(self):
