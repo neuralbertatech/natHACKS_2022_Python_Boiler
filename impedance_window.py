@@ -27,12 +27,28 @@ from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
 
 from Board import Board, get_board_id
+import logging
 
 SIMULATE = 0
 FILE = 1
 LIVESTREAM = 2
 
 ###########################################################
+log_file = "boiler.log"
+logging.basicConfig(level=logging.INFO, filemode="a")
+
+f = logging.Formatter(
+    "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
+)
+stdout = logging.StreamHandler(sys.stdout)
+boiler_log = logging.FileHandler(log_file)
+stdout.setFormatter(f)
+boiler_log.setFormatter(f)
+
+logger = logging.getLogger("GraphWindow")
+logger.addHandler(boiler_log)
+logger.addHandler(stdout)
+logger.info("Program started at {}".format(time.time()))
 
 
 class impedance_win(QWidget):
@@ -178,7 +194,7 @@ class impedance_win(QWidget):
         # self.start_data_stream()
 
         self.board = Board(board_id=self.board_id)
-        print(
+        logger.info(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
 
@@ -198,7 +214,7 @@ class impedance_win(QWidget):
             res = self.board.config_board(
                 "z110Zz210Zz310Zz410Zz510Zz610Zz710Zz810Zzq10Zzw10Zze10Zzr10Zzt10Zzy10Zzu10Zzi10Z"
             )
-            print(res)
+            logger.info(res)
 
             self.board.start_stream(45000, None)
             self.impedances = [0] * self.chan_num
@@ -208,10 +224,8 @@ class impedance_win(QWidget):
             # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
             # expected result: 5 seconds of resistance data(unknown sampling rate) after that 5 seconds of exg data
             self.board.config_board("z")
-            print('sent board z, not yet start stream')
             self.board.start_stream(45000, None)
             time.sleep(5)
-            print('abbout to send board Z')
             self.board.config_board("Z")
             time.sleep(5)
             data = self.board.get_board_data()
@@ -219,35 +233,28 @@ class impedance_win(QWidget):
             # self.board.stop_stream ()
             # self.board.release_session ()
 
-            print (data)
+            logger.info(data)
 
-            resistance_channels = BoardShim.get_resistance_channels (BoardIds.GANGLION_BOARD.value)
-            print (resistance_channels)
+            resistance_channels = BoardShim.get_resistance_channels(
+                BoardIds.GANGLION_BOARD.value
+            )
+            logger.info(resistance_channels)
 
     def closeEvent(self, event):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
-        print("close event works")
+        logger.info("Closing")
         self.finished = True
         self.parent.impedance_window_open = False
         self.on_end()
 
-
     def loop_start(self):
-        print("starting loop")
+        logger.info("Starting loop")
         self.loop_running = True
         self.loop_timer.timeout.disconnect()
         self.loop_timer.timeout.connect(self.start_iteration)
         self.loop_timer.start(1000)
         self.update()
-
-    # def loop_end(self):
-    #     print("ending loop")
-    #     self.loop_running = False
-    #     self.update()
-    #     self.loop_timer.timeout.disconnect()
-    #     self.loop_timer.timeout.connect(self.start_iteration)
-    #     self.loop_timer.start(1000)
 
     def start_iteration(self):
         # called by hitting enter
@@ -261,20 +268,20 @@ class impedance_win(QWidget):
                 # average with the prevous x number of fft data
                 # but this isn't fft - so wtf
                 self.filter_custom(i)
-                # print(len(self.data[i,:]))
+                # logger.info(len(self.data[i,:]))
                 # current is toggling on and off at 31.5 hz (maybe)
                 # so observed voltage should be a sine wave. ideally, we would find its amplitude but I'm lazy
                 # use stdev as proxy.
-                chan_std_uV = stats.stdev(self.data[i,:])
-                self.impedances[i] = ((stats.sqrt( 2.0 ) * (chan_std_uV) * 1.0e-6) / 6.0e-9 - 2200)/1000
-            print(self.impedances)
-            """
-            HERE
-            """
+                chan_std_uV = stats.stdev(self.data[i, :])
+                self.impedances[i] = (
+                    (stats.sqrt(2.0) * (chan_std_uV) * 1.0e-6) / 6.0e-9 - 2200
+                ) / 1000
+            logger.info(self.impedances)
+
             # need to do some smoothing from the past 6 seconds to take out instantaneous
             self.loop_start()
         else:
-            print("exiting")
+            logger.info("exiting")
 
     def filter_custom(self, chan):
         DataFilter.perform_highpass(
@@ -306,7 +313,7 @@ class impedance_win(QWidget):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Qt.Key_Space:
-            print("received user input")
+            logger.info("received user input")
         elif event.key() == Qt.Qt.Key_Return or event.key == Qt.Qt.Key_Enter:
             if self.hardware_connected and not self.running_test:
                 self.running_test = True
@@ -316,22 +323,21 @@ class impedance_win(QWidget):
     def paintEvent(self, event):
         # here is where we draw stuff on the screen
         # you give drawing instructions in pixels - here I'm getting pixel values based on window size
-        print("paint event runs")
+        logger.info("paint event runs")
         painter = QPainter(self)
         if self.loop_running:
             radius = self.geometry().width() // 18
             center = self.geometry().width() // 2
             for i in range(self.chan_num):
-                print(i)
                 temp_coords = self.coords[self.electrodes[i]]
                 x = temp_coords[0] * 2500
                 y = temp_coords[1] * 2500
                 temp_col = 0
                 col_found = False
                 for col in range(len(self.col_thresh)):
-                    print(self.impedances[i])
-                    # print(self.col_thresh[col])
-                    print(
+                    logger.info(self.impedances[i])
+                    # logger.info(self.col_thresh[col])
+                    logger.info(
                         "Is impedance at electrode {} ({}) lower than threshhold ({}): {}".format(
                             self.electrodes[i],
                             self.impedances[i],
@@ -339,21 +345,18 @@ class impedance_win(QWidget):
                             self.impedances[i] < self.col_thresh[col],
                         )
                     )
-                    print("debug1: {}".format(col_found))
                     if col_found == False:
-                        print("debug2")
                         if self.impedances[i] < self.col_thresh[col]:
-                            print("debug3")
                             temp_col = self.col[col]
-                            print(
-                                "therefor the colour of should be {}".format(
+                            logger.info(
+                                "therefore the colour of should be {}".format(
                                     self.col[col]
                                 )
                             )
                             col_found = True
-                            # print("found colour")
-                            # print(self.col_thresh[col])
-                            # print(temp_col)
+                            # logger.info("found colour")
+                            # logger.info(self.col_thresh[col])
+                            # logger.info(temp_col)
                 if col_found == False:
                     temp_col = self.col[-1]
                 painter.setBrush(
