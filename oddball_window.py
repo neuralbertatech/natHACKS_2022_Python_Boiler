@@ -49,7 +49,7 @@ import numpy as np
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
 
-from Board import CONNECT, get_board_id
+from Board import CONNECT, Board, get_board_id
 
 
 class baseline_win(QWidget):
@@ -112,12 +112,7 @@ class baseline_win(QWidget):
 
         # let's start eeg receiving!
         # self.start_data_stream()
-        self.board = BoardShim(self.board_id, self.params)
-        self.board.prepare_session()
-        print(
-            "init hardware is running with hardware", self.hardware, "model", self.model
-        )
-        self.board.start_stream()
+        self.board = Board(self.board_id)
         self.hardware_connected = True
 
         # now we can init stuff for our trials
