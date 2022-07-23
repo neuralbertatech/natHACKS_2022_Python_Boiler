@@ -92,7 +92,7 @@ class graph_win(QWidget):
         self.window_size = 5
         self.num_points = self.window_size * self.sampling_rate
 
-        self.board = Board(data_type, hardware, model, board_id, num_points = self.num_points)
+        self.board = Board(data_type, hardware, model, board_id, serial_port=serial_port, num_points = self.num_points)
 
         self.hardware_connected = True
         logger.info("Hardware connected; stream started.")

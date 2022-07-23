@@ -347,6 +347,8 @@ class MenuWindow(QMainWindow):
     def handle_hardware_choice(self):
         """Handles changes to the hardware dropdown"""
         self.hardware = self.hardware_dropdown.currentText()
+        for btn in [self.graph_window_button, self.baseline_window_button, self.impedance_window_button]:
+            btn.setEnabled(False)
         # handle the choice of hardware - by opening up model selection
         self.model_dropdown.setEnabled(True)
         self.type_dropdown.setEnabled(False)
@@ -364,6 +366,8 @@ class MenuWindow(QMainWindow):
         """Handles changes to the model dropdown"""
         # handle the choice of model by opening up data type selection
         self.model = self.model_dropdown.currentText()
+        for btn in [self.graph_window_button, self.baseline_window_button, self.impedance_window_button]:
+            btn.setEnabled(False)
         self.bci_port.setEnabled(False)
         self.type_dropdown.setEnabled(True)
         self.type_dropdown.setCurrentIndex(-1)
@@ -396,18 +400,19 @@ class MenuWindow(QMainWindow):
         self.data_type = self.type_dropdown.currentText()
         self.graph_window_button.setEnabled(True)
         self.baseline_window_button.setEnabled(True)
+        self.impedance_window_button.setEnabled(True)
         if self.data_type == CONNECT:
             self.title.setText("Select BCI Hardware Port")
             self.bci_port.setEnabled(True)
             self.board_id = get_board_id(self.data_type, self.hardware, self.model)
         elif self.data_type == SIMULATE:
-            self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")
             self.board_id = -1
 
     def handle_bci_port(self):
         """Handles actions made within the bci_port text field"""
         # check for correct value entering and enable type dropdown menu
+        logger.error(self.bci_port.text() + " " + str(self.bci_port.text().isdigit()))
         if self.bci_port.text().isdigit():
             self.type_dropdown.setEnabled(True)
             self.bci_serial_port = "COM" + self.bci_port.text()
@@ -464,8 +469,7 @@ class MenuWindow(QMainWindow):
                 arduino_port=self.arduino_serial_port,
             )
             self.data_window.show()
-            self.data_window.show()
-            self.is_data_window_open = True
+            self.data_window_open = True
             logger.info("created arduino window")
 
     def open_impedance_window(self):

@@ -7,6 +7,7 @@ it checks impedances, of some openbci hardware
 
 """
 
+from copyreg import dispatch_table
 import sys
 import time
 import csv
@@ -52,6 +53,7 @@ class impedance_win(QWidget):
         self.sim_type = sim_type
         self.hardware = hardware
         self.model = model
+        self.data_type = data_type
         self.serial_port = serial_port
 
         self.col_thresh = [50, 100, 250, 500, 1000]
@@ -176,7 +178,7 @@ class impedance_win(QWidget):
         # let's start eeg receiving!
         # self.start_data_stream()
 
-        self.board = Board(board_id=self.board_id, manual_mode = True)
+        self.board = Board(board_id=self.board_id, serial_port=self.serial_port, manual_mode = True)
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
@@ -229,6 +231,8 @@ class impedance_win(QWidget):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
         print("close event works")
+        self.finished = True
+        self.parent.impedance_window_open = False
         self.on_end()
 
 
