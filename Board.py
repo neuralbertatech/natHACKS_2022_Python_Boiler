@@ -51,6 +51,7 @@ class Board():
             serial_port = "COM1"
 
         # Brainflow Init
+        self.params = BrainFlowInputParams()
         self.hardware = hardware
         self.model = model 
 
@@ -93,33 +94,30 @@ class Board():
         self.last_board_data_count = 0
 
     def get_new_data(self):
-        """
-        Check how much data has been added to the ringbuffer since last call (to this function) and grab that much data
-        """
-        new_board_data_count = self.get_board_data_count()
-        count_diff = new_board_data_count - self.last_board_data_count
+        '''
+        check how much data has been addedto the ringbuffer since last call (to this function) and grab that much data
+        '''
+        new_board_data_count = self.board.get_board_data_count()
+        count_diff = new_board_data_count-self.last_board_data_count
         self.last_board_data_count = new_board_data_count
-        return self.get_current_board_data(count_diff)
-
-    def get_data_quantity(self, num_points=None):
-        """
+        return self.board.get_current_board_data(count_diff)
+    
+    def get_data_quantity(self,num_points=None):
+        '''
         Get only a specified amount of most recent board data
         If num_points is not specified, will use the num_points given on init.
         If not specified on init, will produced error.
-        """
-        if num_points is None:
-            if self.num_points is None:
-                raise Exception(
-                    "Data quantity unspecfied. Please specify as an argument or when creating the board."
-                )
+        '''
+        if num_points == None:
+            if self.num_points == None:
+                raise Exception('Data quantity unspecfied. Please specify as an argument or when creating the board.')
             else:
                 num_points = self.num_points
-        return self.get_current_board_data(num_points)
+        return self.board.get_current_board_data(num_points)
 
     def stop(self):
-        """Stops the stream and releases the session all at once"""
-        self.stop_stream()
-        self.release_session()
+        self.board.stop_stream()
+        self.board.release_session()
 
 
 def get_board_id(data_type, hardware, model):
