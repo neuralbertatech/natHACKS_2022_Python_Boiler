@@ -408,6 +408,7 @@ class MenuWindow(QMainWindow):
     def handle_bci_port(self):
         """Handles actions made within the bci_port text field"""
         # check for correct value entering and enable type dropdown menu
+        logger.error(self.bci_port.text() + " " + str(self.bci_port.text().isdigit()))
         if self.bci_port.text().isdigit():
             self.type_dropdown.setEnabled(True)
             self.bci_serial_port = "COM" + self.bci_port.text()
@@ -464,8 +465,7 @@ class MenuWindow(QMainWindow):
                 arduino_port=self.arduino_serial_port,
             )
             self.data_window.show()
-            self.data_window.show()
-            self.is_data_window_open = True
+            self.data_window_open = True
             logger.info("created arduino window")
 
     def open_impedance_window(self):
