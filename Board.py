@@ -47,7 +47,7 @@ def get_serial_port(board_id):
 
 
 class Board(BoardShim):
-    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False, num_points=None, manual_mode = False):
+    def __init__(self, data_type="", hardware="", model="", board_id=None, serial_port=None, debug=False, num_points=None, manual_mode = False):
 
         # Establish parameters
         self.params = BrainFlowInputParams()
@@ -62,7 +62,7 @@ class Board(BoardShim):
         ), "Error: Undefined combination of arguments passed to 'get_board_id'"
 
         # Get com port for EEG device
-        self.params.serial_port = get_serial_port(self.board_id)
+        self.params.serial_port = serial_port if serial_port is not None else get_serial_port(self.board_id)
 
         # Initialize BoardShim object
         super().__init__(self.board_id, self.params)
@@ -88,17 +88,8 @@ class Board(BoardShim):
         else:
             self.num_points = num_points
 
-        if board_id is None:
-            for i in range(10):
-                self.params.serial_port = "COM" + str(i)
-                self.board = BoardShim(self.board_id, self.params)
-                try:
-                    self.board.prepare_session()
-                except brainflow.board_shim.BrainFlowError:
-                    pass
-                else:
-                    # didn't have the bad com port exeption
-                    break
+        self.board = BoardShim(self.board_id, self.params)
+        self.board.prepare_session()
 
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
