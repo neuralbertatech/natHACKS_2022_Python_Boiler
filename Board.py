@@ -1,6 +1,7 @@
 from brainflow.board_shim import BoardShim, BrainFlowInputParams
 import brainflow
 import numpy as np
+import logging
 
 # Actions
 SIMULATE = "Task simulate"
@@ -16,7 +17,6 @@ CYTON = "Cyton"
 CYTON_DAISY = "Cyton-Daisy"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
-
 
 def get_serial_port(board_id):
     """Gets the working COM port for the device on which this script
@@ -44,53 +44,45 @@ def get_serial_port(board_id):
 
     return ""
 
-
-class Board(BoardShim):
-    def __init__(
-        self,
-        data_type="",
-        hardware="",
-        model="",
-        board_id=None,
-        debug=False,
-        num_points=None,
-    ):
-        # Establish parameters
-        self.params = BrainFlowInputParams()
-        # set board id based on parameters only if it wasn't given to us
-        self.board_id = board_id
-        if self.board_id is None:
-            self.board_id = get_board_id(data_type, hardware, model)
-
-        # Ensure board_id was set correctly
-        assert (
-            self.board_id is not None
-        ), "Error: Undefined combination of arguments passed to 'get_board_id'"
-
-        # Get com port for EEG device
-        self.params.serial_port = get_serial_port(self.board_id)
-
-        # Initialize BoardShim object
-        super().__init__(self.board_id, self.params)
-
+class Board():
+    def __init__(self, data_type="", hardware="", model="", board_id=None, debug=False, num_points=None, manual_mode = False):
         if debug == True:
             BoardShim.enable_dev_board_logger()
             serial_port = "COM1"
 
         # Brainflow Init
         self.hardware = hardware
-        self.model = model
-        if num_points is None:
+        self.model = model 
+
+        # set board id based on parameters only if it wasn't given to us
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(data_type, hardware, model)
+        assert self.board_id is not None, "Error: Undefined combination of arguments passed to 'get_board_id'"
+
+        if num_points == None:
             self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
             window_size = 4
             self.num_points = window_size * self.sampling_rate
         else:
             self.num_points = num_points
 
+        for i in range(10):
+            self.params.serial_port = "COM" + str(i)
+            self.board = BoardShim(self.board_id, self.params)
+            try:
+                self.board.prepare_session()
+            except brainflow.board_shim.BrainFlowError:
+                pass
+            else:
+                # didn't have the bad com port exeption
+                break
+
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
-        self.start_stream()
+        if not manual_mode:
+            self.board.start_stream()
 
         exg_channels = BoardShim.get_exg_channels(self.board_id)
         sampling_rate = BoardShim.get_sampling_rate(self.board_id)

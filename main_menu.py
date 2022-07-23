@@ -92,7 +92,7 @@ logger.info("Program started at {}".format(time.time()))
 # from spectrograph import spectrograph_gui
 
 from impedance_window import impedance_win
-
+from baseline_window import baseline_win
 
 # results not implemented yet
 from graph_window import graph_win
@@ -282,6 +282,7 @@ class MenuWindow(QMainWindow):
         |------------------ACTIONS------------------|
         |                                           |
         |    arduino       graph        imped       |
+        |                 baseline                  |
         |-------------------------------------------|
         """
 
@@ -303,7 +304,7 @@ class MenuWindow(QMainWindow):
 
         # here is a button to display graph
         self.graph_window_button = QPushButton("Graph")
-        self.graph_window_button.setEnabled(True)
+        self.graph_window_button.setEnabled(False)
         self.layout.addWidget(
             self.graph_window_button, 5, 0, 1, -1, QtCore.Qt.AlignHCenter
         )
@@ -314,6 +315,12 @@ class MenuWindow(QMainWindow):
 
         # this is a variable to show whether we have a impedance window open
         self.impedance_window_open = False
+
+        # here is a button for the baseline window
+        self.baseline_window_button = QPushButton('Baseline')
+        self.baseline_window_button.setEnabled(False)
+        self.layout.addWidget(self.baseline_window_button,6,0,1,1, QtCore.Qt.AlignHCenter)
+        self.baseline_window_button.clicked.connect(self.open_baseline_window)
 
         # targ limb
         self.targ_limb = None
@@ -387,6 +394,8 @@ class MenuWindow(QMainWindow):
         """Handles changes to the data type drop down."""
         # handle the choice of data type
         self.data_type = self.type_dropdown.currentText()
+        self.graph_window_button.setEnabled(True)
+        self.baseline_window_button.setEnabled(True)
         if self.data_type == CONNECT:
             self.title.setText("Select BCI Hardware Port")
             self.bci_port.setEnabled(True)
@@ -460,7 +469,7 @@ class MenuWindow(QMainWindow):
 
     def open_impedance_window(self):
         """Opens the impedance window, moves program control over."""
-        if self.checks_for_graph_and_impedance_window():
+        if self.checks_for_window_creation():
             logger.info("creating impedance window")
             self.impedance_window = impedance_win(
                 parent=self,
@@ -478,7 +487,7 @@ class MenuWindow(QMainWindow):
 
     def open_graph_window(self):
         """Opens the graph window, moves program control over."""
-        if self.checks_for_graph_and_impedance_window():
+        if self.checks_for_window_creation():
             logger.info("MenuWindow is creating graph window")
             self.graph_window = graph_win(
                 parent=self,
@@ -495,8 +504,23 @@ class MenuWindow(QMainWindow):
         else:
             logger.info("User must fix errors before graph window can be created.")
 
-    def checks_for_graph_and_impedance_window(self):
-        """Checks that all attributes are properly set for both the impedance and graph window.
+    def open_baseline_window(self):
+        """Opens the baseline window, moves program control over."""
+        if self.checks_for_window_creation():
+            logger.info("MenuWindow is creating baseline window")
+            self.baseline_window = baseline_win(
+                parent = self,
+                board_id = self.board_id,
+                csv_name= self.csv_name,
+                serial_port = self.bci_serial_port
+            )
+            self.baseline_window.show()
+            logger.info("Created baseline window")
+        else:
+            logger.info("User must fix error before baseline window can be created.")
+
+    def checks_for_window_creation(self):
+        """Checks that all attributes are properly set for both the impedance and graph window and baseline.
         Logs a warning message about what must be fixed.
 
         Returns:
