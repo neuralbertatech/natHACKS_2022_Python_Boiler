@@ -317,6 +317,10 @@ class baseline_win(QWidget):
             # no need to paint anything specifically
             pass
 
+    def closeEvent(self, ev):
+        self.curr_trial = self.total_trials
+        return
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
