@@ -2,13 +2,14 @@
 This graphs EEG data, live. 
 """
 
-from dataclasses import dataclass
+import csv
+import logging
+import pdb
+import random
 import sys
 import time
-import csv
-import random
-import pdb
-import logging
+from dataclasses import dataclass
+
 from Board import Board, get_board_id
 from utils.save_to_csv import save_to_csv
 
@@ -28,11 +29,20 @@ logger.addHandler(boiler_log)
 logger.addHandler(stdout)
 logger.info("Program started at {}".format(time.time()))
 
-from PyQt5.QtOpenGL import *
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import *
+import statistics as stats
+from multiprocessing import Process, Queue
 
+# from pyqtgraph.Qt import QtGui, QtCore
+from random import randint
+
+import brainflow
+import numpy as np
 import pyqtgraph as pg
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
+from brainflow.data_filter import DataFilter, DetrendOperations, FilterTypes
+from PyQt5.QtCore import QTimer
+from PyQt5.QtOpenGL import *
+from PyQt5.QtWidgets import *
 
 # from pyqtgraph import MultiPlotWidget
 # from pyqtgraph.Qt import QtWidgets
@@ -44,16 +54,6 @@ from pyqtgraph.Qt import QtCore
 #     print("MultiPlot is only used with MetaArray for now (and you do not have the metaarray package)")
 #     exit()
 
-# from pyqtgraph.Qt import QtGui, QtCore
-from random import randint
-
-import numpy as np
-import statistics as stats
-from multiprocessing import Process, Queue
-
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
-from brainflow.data_filter import DataFilter, FilterTypes, DetrendOperations
-import brainflow
 
 SIMULATE = 0
 FILE = 1

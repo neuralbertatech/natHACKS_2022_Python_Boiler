@@ -1,7 +1,8 @@
-from brainflow.board_shim import BoardShim, BrainFlowInputParams
+import logging
+
 import brainflow
 import numpy as np
-import logging
+from brainflow.board_shim import BoardShim, BrainFlowInputParams
 
 # Actions
 SIMULATE = "Task simulate"

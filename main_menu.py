@@ -58,17 +58,17 @@ make board id happen in menu window so not passing raw srtrings between windows
 """
 
 
+import logging
+import os
+import random
 import sys
-from PyQt5 import QtGui
-from PyQt5.QtOpenGL import *
-from PyQt5 import QtCore, Qt
-from PyQt5.QtWidgets import *
+import time
 
 import numpy as np
-import random
-import time
-import os
-import logging
+from PyQt5 import Qt, QtCore, QtGui
+from PyQt5.QtOpenGL import *
+from PyQt5.QtWidgets import *
+
 from Board import (
     BCI,
     CONNECT,
@@ -81,7 +81,6 @@ from Board import (
     SIMULATE,
     get_board_id,
 )
-
 
 # Creates the global logger
 log_file = "boiler.log"
@@ -102,11 +101,11 @@ logger.info("Program started at {}".format(time.time()))
 
 # from spectrograph import spectrograph_gui
 
-from impedance_window import impedance_win
 from baseline_window import baseline_win
 
 # results not implemented yet
 from graph_window import graph_win
+from impedance_window import impedance_win
 
 if False:  # debugging... remebeber to put the tf imports back in session_window
     import tensorflow as tf

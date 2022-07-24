@@ -7,25 +7,23 @@ it checks impedances, of some openbci hardware
 
 """
 
-from copyreg import dispatch_table
+import csv
+import pdb
+import random
+import statistics as stats
 import sys
 import time
-import csv
-import random
-import pdb
-
-from PyQt5 import QtGui
-from PyQt5.QtOpenGL import *
-from PyQt5 import QtCore, Qt
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QPainter, QBrush, QPen, QPolygon
-import numpy as np
-import statistics as stats
+from copyreg import dispatch_table
 from multiprocessing import Process, Queue
 
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
+import numpy as np
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
 from brainflow.data_filter import DataFilter, FilterTypes
+from PyQt5 import Qt, QtCore, QtGui
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QBrush, QPainter, QPen, QPolygon
+from PyQt5.QtOpenGL import *
+from PyQt5.QtWidgets import *
 
 from Board import MUSE, Board, get_board_id
 
