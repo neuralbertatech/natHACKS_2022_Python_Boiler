@@ -1,7 +1,8 @@
-from brainflow.board_shim import BoardShim, BrainFlowInputParams
+import logging
+
 import brainflow
 import numpy as np
-import logging
+from brainflow.board_shim import BoardShim, BrainFlowInputParams
 
 # Actions
 SIMULATE = "Task simulate"
@@ -49,7 +50,17 @@ def get_serial_port(board_id):
 
 
 class Board(BoardShim):
-    def __init__(self, data_type="", hardware="", model="", board_id=None, serial_port=None, debug=False, num_points=None, manual_mode = False):
+    def __init__(
+        self,
+        data_type="",
+        hardware="",
+        model="",
+        board_id=None,
+        serial_port=None,
+        debug=False,
+        num_points=None,
+        manual_mode=False,
+    ):
 
         # Establish parameters
         self.params = BrainFlowInputParams()
@@ -64,7 +75,9 @@ class Board(BoardShim):
         ), "Error: Undefined combination of arguments passed to 'get_board_id'"
 
         # Get com port for EEG device
-        self.params.serial_port = serial_port if serial_port is not None else get_serial_port(self.board_id)
+        self.params.serial_port = (
+            serial_port if serial_port is not None else get_serial_port(self.board_id)
+        )
 
         # Initialize BoardShim object
         super().__init__(self.board_id, self.params)
@@ -75,13 +88,15 @@ class Board(BoardShim):
 
         # Brainflow Init
         self.hardware = hardware
-        self.model = model 
+        self.model = model
 
         # set board id based on parameters only if it wasn't given to us
         self.board_id = board_id
         if self.board_id is None:
             self.board_id = get_board_id(data_type, hardware, model)
-        assert self.board_id is not None, "Error: Undefined combination of arguments passed to 'get_board_id'"
+        assert (
+            self.board_id is not None
+        ), "Error: Undefined combination of arguments passed to 'get_board_id'"
 
         if num_points == None:
             self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)

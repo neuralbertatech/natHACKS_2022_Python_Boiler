@@ -7,25 +7,23 @@ it checks impedances, of some openbci hardware
 
 """
 
-from copyreg import dispatch_table
+import csv
+import pdb
+import random
+import statistics as stats
 import sys
 import time
-import csv
-import random
-import pdb
-
-from PyQt5 import QtGui
-from PyQt5.QtOpenGL import *
-from PyQt5 import QtCore, Qt
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QPainter, QBrush, QPen, QPolygon
-import numpy as np
-import statistics as stats
+from copyreg import dispatch_table
 from multiprocessing import Process, Queue
 
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
+import numpy as np
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
 from brainflow.data_filter import DataFilter, FilterTypes
+from PyQt5 import Qt, QtCore, QtGui
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QBrush, QPainter, QPen, QPolygon
+from PyQt5.QtOpenGL import *
+from PyQt5.QtWidgets import *
 
 from Board import MUSE, Board, get_board_id
 
@@ -182,7 +180,9 @@ class impedance_win(QWidget):
         # let's start eeg receiving!
         # self.start_data_stream()
 
-        self.board = Board(board_id=self.board_id, serial_port=self.serial_port, manual_mode = True)
+        self.board = Board(
+            board_id=self.board_id, serial_port=self.serial_port, manual_mode=True
+        )
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
@@ -215,10 +215,10 @@ class impedance_win(QWidget):
             # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
             # expected result: 5 seconds of resistance data(unknown sampling rate) after that 5 seconds of exg data
             self.board.board.config_board("z")
-            print('sent board z, not yet start stream')
+            print("sent board z, not yet start stream")
             self.board.board.start_stream(45000, None)
             time.sleep(5)
-            print('abbout to send board Z')
+            print("abbout to send board Z")
             self.board.board.config_board("Z")
             time.sleep(5)
             data = self.board.board.get_board_data()
@@ -226,10 +226,12 @@ class impedance_win(QWidget):
             # self.board.stop_stream ()
             # self.board.release_session ()
 
-            print (data)
+            print(data)
 
-            resistance_channels = BoardShim.get_resistance_channels (BoardIds.GANGLION_BOARD.value)
-            print (resistance_channels)
+            resistance_channels = BoardShim.get_resistance_channels(
+                BoardIds.GANGLION_BOARD.value
+            )
+            print(resistance_channels)
 
     def closeEvent(self, event):
         # this code will autorun just before the window closes
@@ -238,7 +240,6 @@ class impedance_win(QWidget):
         self.finished = True
         self.parent.impedance_window_open = False
         self.on_end()
-
 
     def loop_start(self):
         print("starting loop")
@@ -272,8 +273,10 @@ class impedance_win(QWidget):
                 # current is toggling on and off at 31.5 hz (maybe)
                 # so observed voltage should be a sine wave. ideally, we would find its amplitude but I'm lazy
                 # use stdev as proxy.
-                chan_rms_uV = np.sqrt(np.sum(self.data ** 2))
-                self.impedances[count] = ((stats.sqrt( 2.0 ) * (chan_rms_uV) * 1.0e-6) / 6.0e-9 - 2200)/1000
+                chan_rms_uV = np.sqrt(np.sum(self.data**2))
+                self.impedances[count] = (
+                    (stats.sqrt(2.0) * (chan_rms_uV) * 1.0e-6) / 6.0e-9 - 2200
+                ) / 1000
             print(self.impedances)
             """
             HERE

@@ -26,30 +26,29 @@ Madeleine
 
 """
 
+import csv
+import logging
+import random
 import sys
 import time
-import csv
-import random
-import logging
-from PyQt5 import QtGui
-from PyQt5.QtOpenGL import *
-from PyQt5 import QtCore, Qt
 
+import numpy as np
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
+from brainflow.data_filter import DataFilter, FilterTypes
+from PyQt5 import Qt, QtCore, QtGui
 from PyQt5.QtCore import QTimer  # Qt,
+from PyQt5.QtGui import QBrush, QFont, QPainter, QPen, QPolygon
+from PyQt5.QtOpenGL import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QFont, QPainter, QBrush, QPen, QPolygon
+
+from Board import CONNECT, Board, get_board_id
 
 # from PyQt5 import QWidget
 
-import numpy as np
 
 # from multiprocessing import Process, Queue
 # from utils.pyqt5_widgets import MplCanvas
 
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
-from brainflow.data_filter import DataFilter, FilterTypes
-
-from Board import CONNECT, Board, get_board_id
 
 log_file = "boiler.log"
 logging.basicConfig(level=logging.INFO, filemode="a")
