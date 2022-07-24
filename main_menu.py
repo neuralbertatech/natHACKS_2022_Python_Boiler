@@ -69,7 +69,18 @@ import random
 import time
 import os
 import logging
-from Board import BCI, CONNECT, CYTON, CYTON_DAISY, GANGLION, MUSE, MUSE_2, MUSE_S, SIMULATE, get_board_id
+from Board import (
+    BCI,
+    CONNECT,
+    CYTON,
+    CYTON_DAISY,
+    GANGLION,
+    MUSE,
+    MUSE_2,
+    MUSE_S,
+    SIMULATE,
+    get_board_id,
+)
 
 
 # Creates the global logger
@@ -317,9 +328,11 @@ class MenuWindow(QMainWindow):
         self.impedance_window_open = False
 
         # here is a button for the baseline window
-        self.baseline_window_button = QPushButton('Baseline')
+        self.baseline_window_button = QPushButton("Baseline")
         self.baseline_window_button.setEnabled(False)
-        self.layout.addWidget(self.baseline_window_button,6,0,1,1, QtCore.Qt.AlignHCenter)
+        self.layout.addWidget(
+            self.baseline_window_button, 6, 0, 1, 1, QtCore.Qt.AlignHCenter
+        )
         self.baseline_window_button.clicked.connect(self.open_baseline_window)
 
         # targ limb
@@ -347,7 +360,11 @@ class MenuWindow(QMainWindow):
     def handle_hardware_choice(self):
         """Handles changes to the hardware dropdown"""
         self.hardware = self.hardware_dropdown.currentText()
-        for btn in [self.graph_window_button, self.baseline_window_button, self.impedance_window_button]:
+        for btn in [
+            self.graph_window_button,
+            self.baseline_window_button,
+            self.impedance_window_button,
+        ]:
             btn.setEnabled(False)
         # handle the choice of hardware - by opening up model selection
         self.model_dropdown.setEnabled(True)
@@ -366,7 +383,11 @@ class MenuWindow(QMainWindow):
         """Handles changes to the model dropdown"""
         # handle the choice of model by opening up data type selection
         self.model = self.model_dropdown.currentText()
-        for btn in [self.graph_window_button, self.baseline_window_button, self.impedance_window_button]:
+        for btn in [
+            self.graph_window_button,
+            self.baseline_window_button,
+            self.impedance_window_button,
+        ]:
             btn.setEnabled(False)
         self.bci_port.setEnabled(False)
         self.type_dropdown.setEnabled(True)
@@ -514,10 +535,10 @@ class MenuWindow(QMainWindow):
         if self.checks_for_window_creation():
             logger.info("MenuWindow is creating baseline window")
             self.baseline_window = baseline_win(
-                parent = self,
-                board_id = self.board_id,
-                csv_name= self.csv_name,
-                serial_port = self.bci_serial_port
+                parent=self,
+                board_id=self.board_id,
+                csv_name=self.csv_name,
+                serial_port=self.bci_serial_port,
             )
             self.baseline_window.show()
             logger.info("Created baseline window")
