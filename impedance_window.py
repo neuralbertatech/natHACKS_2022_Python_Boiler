@@ -27,7 +27,7 @@ from multiprocessing import Process, Queue
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
 
-from Board import Board, get_board_id
+from Board import MUSE, Board, get_board_id
 
 SIMULATE = 0
 FILE = 1
@@ -48,6 +48,10 @@ class impedance_win(QWidget):
         board_id=None,
     ):
         super().__init__()
+
+        # Ensures that the user has not provided a muse, leading to
+        # hard to debug errors later.
+        assert hardware != MUSE, "Cannot use MUSE hardware in impedance window."
 
         self.parent = parent
         self.sim_type = sim_type
