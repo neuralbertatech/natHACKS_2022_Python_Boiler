@@ -1,6 +1,7 @@
 from brainflow.board_shim import BoardShim, BrainFlowInputParams
 import brainflow
 import numpy as np
+import logging
 
 # Actions
 SIMULATE = "Task simulate"
@@ -40,21 +41,16 @@ def get_serial_port(board_id):
             pass
         else:
             # didn't have the bad com port exeption
+            BoardShim.release_all_sessions()
             return params.serial_port
 
+    BoardShim.release_all_sessions()
     return ""
 
 
 class Board(BoardShim):
-    def __init__(
-        self,
-        data_type="",
-        hardware="",
-        model="",
-        board_id=None,
-        debug=False,
-        num_points=None,
-    ):
+    def __init__(self, data_type="", hardware="", model="", board_id=None, serial_port=None, debug=False, num_points=None, manual_mode = False):
+
         # Establish parameters
         self.params = BrainFlowInputParams()
         # set board id based on parameters only if it wasn't given to us
@@ -68,7 +64,7 @@ class Board(BoardShim):
         ), "Error: Undefined combination of arguments passed to 'get_board_id'"
 
         # Get com port for EEG device
-        self.params.serial_port = get_serial_port(self.board_id)
+        self.params.serial_port = serial_port if serial_port is not None else get_serial_port(self.board_id)
 
         # Initialize BoardShim object
         super().__init__(self.board_id, self.params)
@@ -79,18 +75,29 @@ class Board(BoardShim):
 
         # Brainflow Init
         self.hardware = hardware
-        self.model = model
-        if num_points is None:
+        self.model = model 
+
+        # set board id based on parameters only if it wasn't given to us
+        self.board_id = board_id
+        if self.board_id is None:
+            self.board_id = get_board_id(data_type, hardware, model)
+        assert self.board_id is not None, "Error: Undefined combination of arguments passed to 'get_board_id'"
+
+        if num_points == None:
             self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
             window_size = 4
             self.num_points = window_size * self.sampling_rate
         else:
             self.num_points = num_points
 
+        self.board = BoardShim(self.board_id, self.params)
+        self.board.prepare_session()
+
         print(
             "init hardware is running with hardware", self.hardware, "model", self.model
         )
-        self.start_stream()
+        if not manual_mode:
+            self.board.start_stream()
 
         exg_channels = BoardShim.get_exg_channels(self.board_id)
         sampling_rate = BoardShim.get_sampling_rate(self.board_id)
