@@ -41,8 +41,10 @@ def get_serial_port(board_id):
             pass
         else:
             # didn't have the bad com port exeption
+            BoardShim.release_all_sessions()
             return params.serial_port
 
+    BoardShim.release_all_sessions()
     return ""
 
 

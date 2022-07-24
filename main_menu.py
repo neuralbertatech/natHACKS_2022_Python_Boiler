@@ -412,7 +412,6 @@ class MenuWindow(QMainWindow):
     def handle_bci_port(self):
         """Handles actions made within the bci_port text field"""
         # check for correct value entering and enable type dropdown menu
-        logger.error(self.bci_port.text() + " " + str(self.bci_port.text().isdigit()))
         if self.bci_port.text().isdigit():
             self.type_dropdown.setEnabled(True)
             self.bci_serial_port = "COM" + self.bci_port.text()
@@ -420,6 +419,7 @@ class MenuWindow(QMainWindow):
                 self.impedance_window_button.setEnabled(True)
             self.title.setText("Check impedance or graph")
         else:
+            self.bci_serial_port = None
             # print("Error: OpenBCI port # must be an integer.")
             self.title.setText("Select BCI Hardware Port")
 
