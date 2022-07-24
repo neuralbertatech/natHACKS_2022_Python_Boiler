@@ -204,9 +204,6 @@ class baseline_win(QWidget):
     def on_end(self):
         logging.info("stop eeg stream ran")
 
-        ### Allow user to train model
-        self.parent.model_window_button.setEnabled(True)
-
         ### Disable switching
         self.parent.hardware_dropdown.setEnabled(False)
         self.parent.model_dropdown.setEnabled(False)
@@ -319,6 +316,7 @@ class baseline_win(QWidget):
 
     def closeEvent(self, ev):
         self.curr_trial = self.total_trials
+        self.on_end()
         return
 
 
