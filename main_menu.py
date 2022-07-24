@@ -474,7 +474,9 @@ class MenuWindow(QMainWindow):
 
     def open_impedance_window(self):
         """Opens the impedance window, moves program control over."""
-        if self.checks_for_window_creation():
+        if self.hardware == MUSE:
+            logger.error("Cannot use Muse hardware with impedances.")
+        elif self.checks_for_window_creation():
             logger.info("creating impedance window")
             self.impedance_window = impedance_win(
                 parent=self,

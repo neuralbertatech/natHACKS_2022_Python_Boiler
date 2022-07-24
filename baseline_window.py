@@ -201,27 +201,14 @@ class baseline_win(QWidget):
         self.stim_timer.timeout.connect(self.start_trial)
         self.stim_timer.start(1000)
 
-    def on_end(self):
+    def on_end(self, closed=False):
         logging.info("stop eeg stream ran")
-
-        ### Disable switching
-        self.parent.hardware_dropdown.setEnabled(False)
-        self.parent.model_dropdown.setEnabled(False)
-        self.parent.type_dropdown.setEnabled(False)
-        if self.data_type == CONNECT:
-            self.parent.openbci_port.setEnabled(False)
-
-        self.parent.title.setText("Train the Model")
-
-        self.data = self.board.get_board_data()
-
+        self.stim_timer.stop()
         if self.data_type != "SIMULATE":
-            self.board.stop_stream()
-            self.board.release_session()
+            self.board.stop()
 
-        DataFilter.write_file(self.data, self.csv_name, "w")
-
-        self.close()
+        if not closed:
+            self.close()
 
     def display_instructions(self):
         # this will run at the beginning and needs a button press before anything else will happen
@@ -316,7 +303,7 @@ class baseline_win(QWidget):
 
     def closeEvent(self, ev):
         self.curr_trial = self.total_trials
-        self.on_end()
+        self.on_end(closed=True)
         return
 
 
