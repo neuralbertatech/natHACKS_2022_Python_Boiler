@@ -2,12 +2,7 @@
 
 # NATHacks 2022 - Python Boiler
 
-**TODO: A short blob on what the project is**
-
-
-## Motivation
-
-**TODO: What is the project for? And Why?**
+This is a collection of tools created to help jumpstart users on working with BCI hardware.
 
 
 ## Installation
