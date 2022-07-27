@@ -26,30 +26,45 @@ Madeleine
 
 """
 
+import csv
+import logging
+import random
 import sys
 import time
-import csv
-import random
 
-from PyQt5 import QtGui
-from PyQt5.QtOpenGL import *
-from PyQt5 import QtCore, Qt
-
+import numpy as np
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
+from brainflow.data_filter import DataFilter, FilterTypes
+from PyQt5 import Qt, QtCore, QtGui
 from PyQt5.QtCore import QTimer  # Qt,
+from PyQt5.QtGui import QBrush, QFont, QPainter, QPen, QPolygon
+from PyQt5.QtOpenGL import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QFont, QPainter, QBrush, QPen, QPolygon
+
+from Board import CONNECT, Board, get_board_id
 
 # from PyQt5 import QWidget
 
-import numpy as np
 
 # from multiprocessing import Process, Queue
 # from utils.pyqt5_widgets import MplCanvas
 
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
-from brainflow.data_filter import DataFilter, FilterTypes
 
-from Board import CONNECT, get_board_id
+log_file = "boiler.log"
+logging.basicConfig(level=logging.INFO, filemode="a")
+
+f = logging.Formatter(
+    "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
+)
+stdout = logging.StreamHandler(sys.stdout)
+boiler_log = logging.FileHandler(log_file)
+stdout.setFormatter(f)
+boiler_log.setFormatter(f)
+
+logger = logging.getLogger("BaselineWindow")
+logger.addHandler(boiler_log)
+logger.addHandler(stdout)
+logger.info("Program started at {}".format(time.time()))
 
 
 class baseline_win(QWidget):
@@ -62,6 +77,7 @@ class baseline_win(QWidget):
         csv_name=None,
         parent=None,
         serial_port=None,
+        board_id=None,
     ):
         super().__init__()
 
@@ -86,7 +102,10 @@ class baseline_win(QWidget):
 
         self.com_port = None
 
-        self.board_id = get_board_id(self.data_type, self.hardware, self.model)
+        if board_id == None:
+            self.board_id = get_board_id(self.data_type, self.hardware, self.model)
+        else:
+            self.board_id = board_id
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
@@ -97,7 +116,6 @@ class baseline_win(QWidget):
         # init layout
         self.layout = QGridLayout()
         self.setLayout(self.layout)
-        # self.layout.setContentsMargins(100,100,100,100)
 
         self.stim_type = {"left": 1, "right": 2}
 
@@ -111,13 +129,7 @@ class baseline_win(QWidget):
         self.stim_str = ["Left Arm", "Right Arm"]
 
         # let's start eeg receiving!
-        # self.start_data_stream()
-        self.board = BoardShim(self.board_id, self.params)
-        self.board.prepare_session()
-        print(
-            "init hardware is running with hardware", self.hardware, "model", self.model
-        )
-        self.board.start_stream()
+        self.board = Board(board_id=self.board_id)
         self.hardware_connected = True
 
         # now we can init stuff for our trials
@@ -129,7 +141,7 @@ class baseline_win(QWidget):
             self.stim_type["right"]
         ] * right_trials
         random.shuffle(self.trials)
-        print("trials {}".format(self.trials))
+        logging.info("trials {}".format(self.trials))
         self.curr_trial = 0
         # this is whether or not we've gone through all our trials yet
         self.finished = False
@@ -166,68 +178,36 @@ class baseline_win(QWidget):
         self.is_end = False
 
     def start_stim(self):
-        print("starting stim")
+        logging.info("starting stim")
         self.show_stim = True
         stim_wait = time.time()
         self.responding_time = True
         self.board.insert_marker(self.stim_code)
-        print("debug")
+        logging.info("debug")
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.end_stim)
         self.stim_timer.start(1000)
         self.update()
-        # while time.time() - stim_wait <= self.stim_wait_max:
-        #     time.sleep(0.001)# print(time.time() - stim_wait)
-        #     # print(self.stim_wait_max)
-        # print('for loop over')
-        # self.responding_time = False
-        # self.end_stim()
 
     def end_stim(self):
-        print("ending stim")
+        logging.info("ending stim")
         self.responding_time = False
         self.show_stim = False
         self.board.insert_marker(self.end_trig)
-        # self.data = self.board.get_board_data()
-        # print(self.data)
         self.update()
-        # time.sleep(1)
 
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.start_trial)
-        # self.bw_trial_timer.timeout.connect(self.start_trial)
-        # self.bw_trial_timer.start(1000)
         self.stim_timer.start(1000)
 
-        # if self.finished:
-        #     self.on_end()
-        # else:
-        #     self.start_trial()
-
-    def on_end(self):
-        print("stop eeg stream ran")
-
-        ### Allow user to train model
-        self.parent.model_window_button.setEnabled(True)
-
-        ### Disable switching
-        self.parent.hardware_dropdown.setEnabled(False)
-        self.parent.model_dropdown.setEnabled(False)
-        self.parent.type_dropdown.setEnabled(False)
-        if self.data_type == CONNECT:
-            self.parent.openbci_port.setEnabled(False)
-
-        self.parent.title.setText("Train the Model")
-
-        self.data = self.board.get_board_data()
-
+    def on_end(self, closed=False):
+        logging.info("stop eeg stream ran")
+        self.stim_timer.stop()
         if self.data_type != "SIMULATE":
-            self.board.stop_stream()
-            self.board.release_session()
+            self.board.stop()
 
-        DataFilter.write_file(self.data, self.csv_name, "w")
-
-        self.close()
+        if not closed:
+            self.close()
 
     def display_instructions(self):
         # this will run at the beginning and needs a button press before anything else will happen
@@ -241,38 +221,32 @@ class baseline_win(QWidget):
 
     def start_trial(self):
         # starts trial - starts timers.
-        print("starting trial")
+        logging.info("starting trial")
         self.running_trial = True
         # setting current color and stim code based on value for current trial
-        print(self.curr_trial)
-        # self.color = self.trials[self.curr_trial][0]
+        logging.info(self.curr_trial)
         self.stim_code = self.trials[self.curr_trial]
         time.sleep(0.5)
-        # print("curr: " + str(self.curr_trial) + " < " + str(self.total_trials))
+
         if self.curr_trial < self.total_trials - 1:
             self.curr_trial += 1
             self.start_stim()
         else:
-            print("all trials done")
+            logging.info("all trials done")
             self.finished = True
             self.board.insert_marker(self.end_trig)
             self.on_end()
 
-    # def global_update(self):
-    #     global count
-    #     count += 1
-    #     self.update()
-
     def keyPressEvent(self, event):
         if event.key() == Qt.Qt.Key_Space:
             if self.responding_time == True:
-                print("received user input during correct time")
+                logging.info("received user input during correct time")
                 self.board.insert_marker(3)
             else:
-                print("received user input during incorrect time")
+                logging.info("received user input during incorrect time")
 
         elif event.key() == Qt.Qt.Key_Return or event.key == Qt.Qt.Key_Enter:
-            print(
+            logging.info(
                 "hardware {} running trial {}".format(
                     self.hardware_connected, self.running_trial
                 )
@@ -284,10 +258,10 @@ class baseline_win(QWidget):
     def paintEvent(self, event):
         # here is where we draw stuff on the screen
         # you give drawing instructions in pixels - here I'm getting pixel values based on window size
-        print("paint event runs")
+        logging.info("paint event runs")
         painter = QPainter(self)
         if self.show_stim:
-            print("painting stim")
+            logging.info("painting stim")
             center = self.geometry().width() // 2
             textWidth = 200
             textHeight = 100
@@ -326,9 +300,14 @@ class baseline_win(QWidget):
             # no need to paint anything specifically
             pass
 
+    def closeEvent(self, ev):
+        self.curr_trial = self.total_trials
+        self.on_end(closed=True)
+        return
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = baseline_win()
-    win.show()
+    win.show(csv_name="baseline.csv", board_id=1, serial_port="COM3")
     sys.exit(app.exec())
