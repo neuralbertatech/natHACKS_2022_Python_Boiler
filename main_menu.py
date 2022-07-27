@@ -69,7 +69,34 @@ import random
 import time
 import os
 import logging
-from Board import BCI, CONNECT, CYTON, CYTON_DAISY, GANGLION, MUSE, MUSE_2, MUSE_S, SIMULATE, get_board_id
+from Board import BCI, CONNECT, CYTON, CYTON_DAISY, GANGLION, MUSE, MUSE_2, MUSE_S, SIMULATE, PILL, EXG_PILL, get_board_id
+from arduino_windows import ard_wind_on
+from src.gui.window.graph import GraphExg as Graph
+from src.board.exg_pill import ExgPill
+import random
+
+def random_array(size):
+    return [random.random() for i in range(size)]
+    
+def get_data(pill):
+    data = pill.get_data_quantity(256)
+    size = len(data)
+    transposed_data = [
+            [sample[0]/1000 for sample in data],
+            [sample[1]/1000 for sample in data],
+            [sample[2]/1000 for sample in data],
+            [sample[3]/1000 for sample in data],
+            [sample[4]/1000 for sample in data]
+    ]
+    return np.array([
+        [x for x in range(0, size)],
+        transposed_data[0],
+        transposed_data[1],
+        transposed_data[2],
+        transposed_data[3],
+        transposed_data[4],
+        [0 for i in range(size)]
+    ])
 
 
 # Creates the global logger
@@ -194,7 +221,7 @@ class MenuWindow(QMainWindow):
         # drop down menu to decide what hardware
         self.hardware_dropdown = QComboBox()
         self.hardware_dropdown.setPlaceholderText("Select hardware")
-        self.hardware_dropdown.addItems([BCI, MUSE])
+        self.hardware_dropdown.addItems([BCI, MUSE, PILL])
         self.hardware_dropdown.activated.connect(self.handle_hardware_choice)
         self.hardware_label = QLabel("Select hardware")
         self.hardware_layout.addWidget(self.hardware_label)
@@ -352,6 +379,8 @@ class MenuWindow(QMainWindow):
             self.model_dropdown.addItems([MUSE_2, MUSE_S])
         elif self.hardware_dropdown.currentText() == "Blueberry":
             self.model_dropdown.addItem("Prototype")
+        elif self.hardware_dropdown.currentText() == PILL:
+            self.model_dropdown.addItems([EXG_PILL])
 
     def handle_model_choice(self):
         """Handles changes to the model dropdown"""
@@ -480,6 +509,13 @@ class MenuWindow(QMainWindow):
         """Opens the graph window, moves program control over."""
         if self.checks_for_graph_and_impedance_window():
             logger.info("MenuWindow is creating graph window")
+            self.board = None
+            if self.hardware == PILL:
+                pill = ExgPill(self.bci_serial_port)
+                self.board = pill
+                # HOTFIX: Used to allow the pill to startup
+                time.sleep(4)
+
             self.graph_window = graph_win(
                 parent=self,
                 hardware=self.hardware,
@@ -488,6 +524,7 @@ class MenuWindow(QMainWindow):
                 board_id=self.board_id,
                 serial_port=self.bci_serial_port,
                 save_file=self.csv_name,
+                board=self.board,
             )
             self.graph_window.show()
             self.is_graph_window_open = True
