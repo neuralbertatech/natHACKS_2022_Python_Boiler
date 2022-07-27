@@ -1,59 +1,5 @@
 """
-TO DO:
-    Main Menu:
-        Add in hardware/model:
-            unicorn
-            muse (2/S)
-    Compartmentalize the board id grab in utils (pass in hardware/model/datatype) 
-    
-    Impedence menu
-        Look for muse impedance check scripts
-        Confirm that the OpenBCI Impedence checks are working properly
-
-    For time sync - add back in pyLSL? 
-
-    Render GA ERPs in results window from the either the baseline or the session
-        Choose from baseline/session 
-
-    Logisitics:
-        Send Paul another Muse and possibly an arduino + light? 
-
-M todo
-order of events lets you try and fauil tomopen graph wo selecting com port
-one dropdown for hardware (<-eden no likey)
-implement impedanece for all,not just cyton daisy
-
-add support for non openbci hardware
-add option to not import tensorflow
-in train model, has hard coded 16 channel # (fix)
-
-
-
-opens windows:
-graph window - shows live timeseries
--potentially make it configurable
-- label on garph which line is which channel by chcking hardware
-impedance window
--curently hacked together, obnly cyton daiusy
--implement with other
-arduino
--debug requires putting in 1
--preset for neuorstimduino
-- need dosc for how to upload script to arduino using arduino ide, attach led
-- currently provides a way to turn led on arduino on and off on command
-baseline
-- basically like the oddball window
-- outputs eeg file in brainflow format
-- new plan: use pylsl sender to constantly grab brainflow and events and send them together, so ww can be sure of times
-saving
-- sqlite prob overkill
-- use numpy
-- later maybe add sqlite to use if run for long time
-remove unecessary windows
-- we don't need a model window with tensorflow to train a thing. this isn't koalacademy
-ADD SIMULATE AS HARDWARE OPTION
-make board id happen in menu window so not passing raw srtrings between windows
-
+This is the main menu. It starts all the other programs as directed by the user.
 
 """
 
@@ -69,7 +15,8 @@ import random
 import time
 import os
 import logging
-from Board import BCI, CONNECT, CYTON, CYTON_DAISY, GANGLION, MUSE, MUSE_2, MUSE_S, SIMULATE, get_board_id
+from Board import BCI, CONNECT, CYTON, CYTON_DAISY, GANGLION, MUSE, MUSE_2, MUSE_S, MUSE_2016, \
+    MUSE_S_BLED, MUSE_2_BLED, MUSE_2016_BLED, SIMULATE, get_board_id
 
 
 # Creates the global logger
@@ -97,7 +44,7 @@ from baseline_window import baseline_win
 # results not implemented yet
 from graph_window import graph_win
 
-if False:  # debugging... remebeber to put the tf imports back in session_window
+if False:  # debugging... remember to put the tf imports back in session_window
     import tensorflow as tf
 
 if sys.platform == "win32":
@@ -358,9 +305,7 @@ class MenuWindow(QMainWindow):
         if self.hardware_dropdown.currentText() == BCI:
             self.model_dropdown.addItems([GANGLION, CYTON, CYTON_DAISY])
         elif self.hardware_dropdown.currentText() == MUSE:
-            self.model_dropdown.addItems([MUSE_2, MUSE_S])
-        elif self.hardware_dropdown.currentText() == "Blueberry":
-            self.model_dropdown.addItem("Prototype")
+            self.model_dropdown.addItems([MUSE_2016_BLED, MUSE_2_BLED, MUSE_S_BLED])
 
     def handle_model_choice(self):
         """Handles changes to the model dropdown"""
@@ -400,7 +345,10 @@ class MenuWindow(QMainWindow):
         self.data_type = self.type_dropdown.currentText()
         self.graph_window_button.setEnabled(True)
         self.baseline_window_button.setEnabled(True)
-        self.impedance_window_button.setEnabled(True)
+        if self.hardware_dropdown.currentText() != MUSE:
+            self.impedance_window_button.setEnabled(True)
+        else:
+            logger.info('Impedance window is not available for Muse hardware. Try OpenBCI instead.')
         if self.data_type == CONNECT:
             self.title.setText("Select BCI Hardware Port")
             self.bci_port.setEnabled(True)

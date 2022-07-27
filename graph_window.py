@@ -84,9 +84,19 @@ class graph_win(QWidget):
         # save file should be an ok file name to save to with approriate ending ('.csv')
         self.save_file = save_file
         self.board_id = get_board_id(data_type, hardware, model)
-
         self.exg_channels = BoardShim.get_exg_channels(self.board_id)
-        self.marker_channels = BoardShim.get_marker_channel(self.board_id)
+
+        # by default, not using this (turn back on if you have most recent brainflow)
+        # in the most recent version of brainflow, you can access an additional muse channel,
+        # correponding to the aux port. However, this update breaks that bandstop filter, 
+        # so make sure to turn that off (in self.update)
+        if self.board_id in (21,22,42) and False:
+            # if we are using muyse hardware get a channel for the device's aux port
+            self.aux_channels = BoardShim.get_other_channels(self.board_id)
+            self.using_aux_channels = True
+        else:
+            self.using_aux_channels = False
+
         self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
         self.update_speed_ms = 50
         self.window_size = 5
@@ -99,7 +109,8 @@ class graph_win(QWidget):
 
         self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
-        self.marker_channels = np.array(self.marker_channels)
+        if self.using_aux_channels:
+            self.aux_channels = np.array(self.aux_channels)
         print('board decription {}'.format(BoardShim.get_board_descr(board_id)))
 
         logger.debug('EXG channels is {}'.format(self.exg_channels))
@@ -130,7 +141,11 @@ class graph_win(QWidget):
     def _init_timeseries(self):
         self.plots = list()
         self.curves = list()
-        for i in range(self.chan_num+1):
+        if self.using_aux_channels:
+            num_curves = self.chan_num + len(self.aux_channels)
+        else:
+            num_curves = self.chan_num
+        for i in range(num_curves):
             p = self.graphWidget.addPlot(row=i, col=0)
             p.showAxis("left", False)
             p.setMenuEnabled("left", False)
@@ -184,15 +199,6 @@ class graph_win(QWidget):
                 FilterTypes.BUTTERWORTH.value,
                 0,
             )
-            DataFilter.perform_bandpass(
-                data[channel],
-                self.sampling_rate,
-                51.0,
-                100.0,
-                2,
-                FilterTypes.BUTTERWORTH.value,
-                0,
-            )
             DataFilter.perform_bandstop(
                 data[channel],
                 self.sampling_rate,
@@ -212,8 +218,10 @@ class graph_win(QWidget):
                 0,
             )
             self.curves[count].setData(data[channel].tolist())
-        self.curves[len(self.exg_channels)].setData(data[self.marker_channels].tolist())
-        logger.debug('Marker channel data was {}'.format(data[self.marker_channels].tolist()))
+        if self.using_aux_channels:
+            for count, channel in enumerate(self.aux_channels):
+                self.curves[len(self.exg_channels)+count].setData(data[channel].tolist())
+            logger.debug('AUX channel data was {}'.format(data[self.aux_channels].tolist()))
         logger.debug('Graph window finished updating (successfully got data from board and applied it to graphs)')
 
     def closeEvent(self, event):

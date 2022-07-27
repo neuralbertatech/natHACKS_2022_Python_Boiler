@@ -15,6 +15,10 @@ BCI = "openBCI"
 GANGLION = "Ganglion"
 CYTON = "Cyton"
 CYTON_DAISY = "Cyton-Daisy"
+MUSE_2016_BLED = "Muse 2016 BLE Dongle" 
+MUSE_2_BLED = "Muse 2 BLE Dongle"
+MUSE_S_BLED = "Muse S BLE Dongle"
+MUSE_2016 = "Muse 2016"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 
@@ -41,7 +45,7 @@ def get_serial_port(board_id):
             pass
         else:
             # didn't have the bad com port exeption
-            BoardShim.release_all_sessions()
+            board.release_session()
             return params.serial_port
 
     BoardShim.release_all_sessions()
@@ -138,12 +142,14 @@ class Board(BoardShim):
 
 
 def get_board_id(data_type, hardware, model):
-    """Gets the brainflow board_id from the given arguments
+    """Gets the brainflow board_id from the given arguments. Note that BLED boards\
+         require a BLED112 dongle. Non BLED muse hardware is untested.
 
     Args:
         data_type (String): A string of either "Task live" or "Task simulate"
         hardware (String): A string of either "Muse" or "OpenBCI"
-        model (String): A string of either "Muse 2", "Muse S", "Ganglion", "Cyton", or "Cyton-Daisy"
+        model (String): A string of either "Ganglion", "Cyton", or "Cyton-Daisy", "Muse 2016 BLE Dongle", 
+        "Muse 2 BLE Dongle", "Muse S BLE Dongle", "Muse 2016", "Muse 2","Muse S"
 
     Returns:
         int: The board_id that brainflow uses internally to determine board type
@@ -158,10 +164,19 @@ def get_board_id(data_type, hardware, model):
             elif model == CYTON_DAISY:
                 board_id = 2
         elif hardware == MUSE:
-            if model == MUSE_2:
-                board_id = 22
-            elif model == MUSE_S:
+            if model == MUSE_S_BLED:
                 board_id = 21
+            elif model == MUSE_2_BLED:
+                board_id = 22
+            elif model == MUSE_2016_BLED:
+                board_id = 42
+            elif model == MUSE_2:
+                board_id = 38
+            elif model == MUSE_S:
+                board_id = 39
+            elif model == MUSE_2016:
+                board_id = 41
+            
     elif data_type == SIMULATE:
         board_id = -1
 

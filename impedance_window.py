@@ -22,7 +22,22 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPainter, QBrush, QPen, QPolygon
 import numpy as np
 import statistics as stats
-from multiprocessing import Process, Queue
+import logging
+log_file = "boiler.log"
+logging.basicConfig(level=logging.INFO, filemode="a")
+
+f = logging.Formatter(
+    "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
+)
+stdout = logging.StreamHandler(sys.stdout)
+boiler_log = logging.FileHandler(log_file)
+stdout.setFormatter(f)
+boiler_log.setFormatter(f)
+
+logger = logging.getLogger("ImpedWindow")
+logger.addHandler(boiler_log)
+logger.addHandler(stdout)
+logger.info("Program started at {}".format(time.time()))
 
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes
@@ -48,6 +63,7 @@ class impedance_win(QWidget):
         board_id=None,
     ):
         super().__init__()
+        logger.info('Initializing impedance window')
 
         # Ensures that the user has not provided a muse, leading to
         # hard to debug errors later.
@@ -181,6 +197,7 @@ class impedance_win(QWidget):
 
         # let's start eeg receiving!
         # self.start_data_stream()
+        logger.info("Initializing hardware")
 
         self.board = Board(board_id=self.board_id, serial_port=self.serial_port, manual_mode = True)
         print(
@@ -196,6 +213,7 @@ class impedance_win(QWidget):
             # This wild string puts Cyton-Daisy into impedance mode.
             # DO NOT CHANGE
             # Think Pulse
+            logger.info("Configuring Cyton")
             self.board.board.config_board(
                 "x1040010Xx2040010Xx3040010Xx4040010Xx5040010Xx6040010Xx7040010Xx8040010XxQ040010XxW040010XxE040010XxR040010XxT040010XxY040010XxU040010XxI040010X"
             )
@@ -214,6 +232,7 @@ class impedance_win(QWidget):
             # ganglion impedances based on
             # https://github.com/OpenBCI/brainflow/blob/master/tests/python/ganglion_resist.py
             # expected result: 5 seconds of resistance data(unknown sampling rate) after that 5 seconds of exg data
+            logger.info("Configuring Ganglion")
             self.board.board.config_board("z")
             print('sent board z, not yet start stream')
             self.board.board.start_stream(45000, None)
@@ -230,31 +249,26 @@ class impedance_win(QWidget):
 
             resistance_channels = BoardShim.get_resistance_channels (BoardIds.GANGLION_BOARD.value)
             print (resistance_channels)
+        else:
+            logger.error('Impedance window cannote run using this hardware (Board ID: {}). Try an OpenBCI ganglion or cyton instead.'.format(self.board_id))
 
     def closeEvent(self, event):
         # this code will autorun just before the window closes
         # we will check whether streams are running, if they are we will close them
-        print("close event works")
+        logger.info("Closing window")
         self.finished = True
         self.parent.impedance_window_open = False
         self.on_end()
 
 
     def loop_start(self):
-        print("starting loop")
+        logger.info("starting loop")
         self.loop_running = True
         self.loop_timer.timeout.disconnect()
         self.loop_timer.timeout.connect(self.start_iteration)
         self.loop_timer.start(1000)
         self.update()
 
-    # def loop_end(self):
-    #     print("ending loop")
-    #     self.loop_running = False
-    #     self.update()
-    #     self.loop_timer.timeout.disconnect()
-    #     self.loop_timer.timeout.connect(self.start_iteration)
-    #     self.loop_timer.start(1000)
 
     def start_iteration(self):
         # called by hitting enter
@@ -274,14 +288,14 @@ class impedance_win(QWidget):
                 # use stdev as proxy.
                 chan_rms_uV = np.sqrt(np.sum(self.data ** 2))
                 self.impedances[count] = ((stats.sqrt( 2.0 ) * (chan_rms_uV) * 1.0e-6) / 6.0e-9 - 2200)/1000
-            print(self.impedances)
+            logger.debug("Imedances: {}".format(self.impedances))
             """
             HERE
             """
             # need to do some smoothing from the past 6 seconds to take out instantaneous
             self.loop_start()
         else:
-            print("exiting")
+            logger.info("exiting")
 
     def filter_custom(self, chan):
         DataFilter.perform_highpass(
@@ -313,7 +327,7 @@ class impedance_win(QWidget):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Qt.Key_Space:
-            print("received user input")
+            logger.info("received user input")
         elif event.key() == Qt.Qt.Key_Return or event.key == Qt.Qt.Key_Enter:
             if self.hardware_connected and not self.running_test:
                 self.running_test = True
@@ -323,7 +337,7 @@ class impedance_win(QWidget):
     def paintEvent(self, event):
         # here is where we draw stuff on the screen
         # you give drawing instructions in pixels - here I'm getting pixel values based on window size
-        print("paint event runs")
+        logger.info("paint event runs")
         painter = QPainter(self)
         if self.loop_running:
             radius = self.geometry().width() // 18
