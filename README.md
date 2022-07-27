@@ -12,7 +12,6 @@ This is a collection of tools created to help jumpstart users on working with BC
 - [Python](https://www.python.org/downloads/) 3.9 or above
 - [virtualenv](https://docs.python.org/3/library/venv.html)
 - All requirements within requirements.txt (refer to above for installation)
-- Jupyter???
 
 
 ### From Source
