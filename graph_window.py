@@ -90,8 +90,11 @@ class graph_win(QWidget):
         # in the most recent version of brainflow, you can access an additional muse channel,
         # correponding to the aux port. However, this update breaks that bandstop filter, 
         # so make sure to turn that off (in self.update)
-        if self.board_id in (21,22,42) and False:
-            # if we are using muyse hardware get a channel for the device's aux port
+        if self.board_id in (21,22,42) and True:
+            # muse devices have an extra eeg channel. We need to configure th board
+            # to include it before we strat the stream, so we'll make our Board in
+            # manual mode so we can start the stream ourselves.
+            # if we are using muse hardware get a channel for the device's aux port
             self.aux_channels = BoardShim.get_other_channels(self.board_id)
             self.using_aux_channels = True
         else:
@@ -102,7 +105,24 @@ class graph_win(QWidget):
         self.window_size = 5
         self.num_points = self.window_size * self.sampling_rate
 
-        self.board = Board(data_type, hardware, model, board_id, serial_port=serial_port, num_points = self.num_points)
+        if self.board_id in (21,22,42) and True:
+            # muse devices have an extra eeg channel. We need to configure th board
+            # to include it before we strat the stream, so we'll make our Board in
+            # manual mode so we can start the stream ourselves.
+            manual_mode = True
+            # if we are using muse hardware get a channel for the device's aux port
+            self.aux_channels = BoardShim.get_other_channels(self.board_id)
+            self.using_aux_channels = False
+        else:
+            manual_mode = False
+            self.using_aux_channels = False
+        self.board = Board(data_type, hardware, model, board_id, serial_port=serial_port, num_points = self.num_points,manual_mode = manual_mode)
+
+        if manual_mode:
+            logger.info('manual mode section ran')
+            # using muse. configure so we get 5h eeg channel, and start stream
+            self.board.board.config_board("p50")
+            self.board.board.start_stream()
 
         self.hardware_connected = True
         logger.info("Hardware connected; stream started.")
@@ -199,6 +219,7 @@ class graph_win(QWidget):
                 FilterTypes.BUTTERWORTH.value,
                 0,
             )
+            logging.info(' channel, data[channel] before bandstop {}\n {}'.format(channel,data[channel]))
             DataFilter.perform_bandstop(
                 data[channel],
                 self.sampling_rate,
