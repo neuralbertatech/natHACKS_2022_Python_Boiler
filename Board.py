@@ -153,6 +153,13 @@ class Board(BoardShim):
         self.stop_stream()
         self.release_session()
 
+    def get_exg_channels(self):
+        '''
+        returns the indices of eeg channels in data (as a numpy array)
+        '''
+        return(self.exg_channels)
+
+
 
 def get_board_id(data_type, hardware, model):
     """Gets the brainflow board_id from the given arguments
