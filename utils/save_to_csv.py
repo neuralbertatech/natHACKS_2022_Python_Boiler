@@ -13,7 +13,7 @@ def save_to_csv(data,csv_name,channels = None, logger=None):
     '''
 
     with open(csv_name, "a") as csvfile:
-            if channels == None:
+            if np.array(channels).all() == None:
                 data_to_save = data[:, :].T
             else:
                 data_to_save = data[channels, :].T
