@@ -11,6 +11,7 @@ CONNECT = "Task live"
 # Hardware types
 MUSE = "Muse"
 BCI = "openBCI"
+PILL = "EXG Pill"
 
 # Model types
 GANGLION = "Ganglion"
@@ -18,6 +19,7 @@ CYTON = "Cyton"
 CYTON_DAISY = "Cyton-Daisy"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
+EXG_PILL = "EXG Pill"
 
 
 def get_serial_port(board_id):
@@ -184,6 +186,8 @@ def get_board_id(data_type, hardware, model):
                 board_id = 22
             elif model == MUSE_S:
                 board_id = 21
+        elif hardware == PILL:
+            board_id = 30
     elif data_type == SIMULATE:
         board_id = -1
 

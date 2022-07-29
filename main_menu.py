@@ -79,8 +79,11 @@ from Board import (
     MUSE_2,
     MUSE_S,
     SIMULATE,
+    PILL,
+    EXG_PILL,
     get_board_id,
 )
+from src.board.exg_pill import ExgPill
 
 # Creates the global logger
 log_file = "boiler.log"
@@ -204,7 +207,7 @@ class MenuWindow(QMainWindow):
         # drop down menu to decide what hardware
         self.hardware_dropdown = QComboBox()
         self.hardware_dropdown.setPlaceholderText("Select hardware")
-        self.hardware_dropdown.addItems([BCI, MUSE])
+        self.hardware_dropdown.addItems([BCI, MUSE, PILL])
         self.hardware_dropdown.activated.connect(self.handle_hardware_choice)
         self.hardware_label = QLabel("Select hardware")
         self.hardware_layout.addWidget(self.hardware_label)
@@ -377,6 +380,8 @@ class MenuWindow(QMainWindow):
             self.model_dropdown.addItems([MUSE_2, MUSE_S])
         elif self.hardware_dropdown.currentText() == "Blueberry":
             self.model_dropdown.addItem("Prototype")
+        elif self.hardware_dropdown.currentText() == PILL:
+            self.model_dropdown.addItems([EXG_PILL])
 
     def handle_model_choice(self):
         """Handles changes to the model dropdown"""
@@ -516,6 +521,13 @@ class MenuWindow(QMainWindow):
         """Opens the graph window, moves program control over."""
         if self.checks_for_window_creation():
             logger.info("MenuWindow is creating graph window")
+            self.board = None
+            if self.hardware == PILL:
+                pill = ExgPill(self.bci_serial_port)
+                self.board = pill
+                # HOTFIX: Used to allow the pill to startup
+                time.sleep(4)
+
             self.graph_window = graph_win(
                 parent=self,
                 hardware=self.hardware,
@@ -524,6 +536,7 @@ class MenuWindow(QMainWindow):
                 board_id=self.board_id,
                 serial_port=self.bci_serial_port,
                 save_file=self.csv_name,
+                board=self.board,
             )
             self.graph_window.show()
             self.is_graph_window_open = True

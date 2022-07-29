@@ -2,15 +2,13 @@
 This graphs EEG data, live. 
 """
 
-import csv
-import logging
-import pdb
-import random
+from dataclasses import dataclass
 import sys
 import time
-from dataclasses import dataclass
-
-from Board import Board, get_board_id
+import csv
+import random
+import pdb
+import logging
 from utils.save_to_csv import save_to_csv
 
 log_file = "boiler.log"
@@ -29,20 +27,11 @@ logger.addHandler(boiler_log)
 logger.addHandler(stdout)
 logger.info("Program started at {}".format(time.time()))
 
-import statistics as stats
-from multiprocessing import Process, Queue
-
-# from pyqtgraph.Qt import QtGui, QtCore
-from random import randint
-
-import brainflow
-import numpy as np
-import pyqtgraph as pg
-from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
-from brainflow.data_filter import DataFilter, DetrendOperations, FilterTypes
-from PyQt5.QtCore import QTimer
 from PyQt5.QtOpenGL import *
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import *
+
+import pyqtgraph as pg
 
 # from pyqtgraph import MultiPlotWidget
 # from pyqtgraph.Qt import QtWidgets
@@ -54,6 +43,15 @@ from pyqtgraph.Qt import QtCore
 #     print("MultiPlot is only used with MetaArray for now (and you do not have the metaarray package)")
 #     exit()
 
+# from pyqtgraph.Qt import QtGui, QtCore
+from random import randint
+
+import numpy as np
+import statistics as stats
+from multiprocessing import Process, Queue
+
+from brainflow.data_filter import DataFilter, FilterTypes, DetrendOperations
+import brainflow
 
 from Board import PILL
 
@@ -64,72 +62,35 @@ LIVESTREAM = 2
 ###########################################################
 
 
-class graph_win(QWidget):
-    def __init__(
-        self,
-        hardware=None,
-        model=None,
-        sim_type=None,
-        data_type=None,
-        serial_port=None,
-        save_file=None,
-        parent=None,
-        board_id=None,
-        board=None,
-    ):
+class GraphExg(QWidget):
+    def __init__(self, number_of_channels, update_callback, update_object):
         super().__init__()
         logger.info("Initializing graph_win (Graph window)")
-        self.parent = parent
-        self.sim_type = sim_type
-        self.hardware = hardware
-        self.model = model
-        self.data_type = data_type
-        # save file should be an ok file name to save to with approriate ending ('.csv')
-        self.save_file = save_file
-        self.board_id = get_board_id(data_type, hardware, model)
-        self.board = board
-
-        if self.board:
-            self.exg_channels = self.board.get_exg_channels()
-            self.marker_channels = self.board.get_marker_channels()
-            self.sampling_rate = self.board.get_sampling_rate()
-            self.description = self.board.get_board_description()
-        else:
-            self.exg_channels = BoardShim.get_exg_channels(self.board_id)
-            self.marker_channels = BoardShim.get_marker_channel(self.board_id)
-            self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
-            self.description = BoardShim.get_board_descr(board_id)
-
+        
+        self.number_of_channels = number_of_channels
+        self.update_callback = update_callback
+        self.update_object = update_object
+        self.exg_channels = [1, 2, 3, 4, 5]
+        self.marker_channels = 6
+        self.sampling_rate = 125
         self.update_speed_ms = 50
         self.window_size = 5
         self.num_points = self.window_size * self.sampling_rate
 
-        if not self.board:
-            self.board = Board(
-                data_type,
-                hardware,
-                model,
-                board_id,
-                serial_port=serial_port,
-                num_points=self.num_points,
-            )
-
         self.hardware_connected = True
         logger.info("Hardware connected; stream started.")
 
-        self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
         self.marker_channels = np.array(self.marker_channels)
-        print("board decription {}".format(self.description))
 
-        logger.debug("EXG channels is {}".format(self.exg_channels))
+        logger.debug('EXG channels is {}'.format(self.exg_channels))
 
         # set up stuff to save our data
         # just a numpy array for now
         # 10 minutes of data
         # init a cursor to keep track of where we are in the data
         self.data_max_len = self.sampling_rate * 600
-        self.data = np.zeros((self.data_max_len, self.chan_num))
+        self.data = np.zeros((self.data_max_len, self.number_of_channels))
         self.cur_line = 0
 
         self.graphWidget = pg.GraphicsLayoutWidget()
@@ -150,7 +111,7 @@ class graph_win(QWidget):
     def _init_timeseries(self):
         self.plots = list()
         self.curves = list()
-        for i in range(self.chan_num + 1):
+        for i in range(self.number_of_channels+1):
             p = self.graphWidget.addPlot(row=i, col=0)
             p.showAxis("left", False)
             p.setMenuEnabled("left", False)
@@ -166,15 +127,11 @@ class graph_win(QWidget):
         logger.debug("Graph window is updating")
 
         # this is data to be saved. It is only new data since our last call
-        data = self.board.get_new_data()
-        #print("Data1: {}".format(data))
-        # save data to our csv super quick
-        save_to_csv(
-            data, self.save_file, self.exg_channels, logger
-        )
+        data = self.update_callback(self.update_object);
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
         # what is and isn't eeg. We will ignore non eeg and not save it
+        
 
         data_len = data.shape[1]
         if data_len + self.cur_line >= self.data_max_len:
@@ -193,7 +150,7 @@ class graph_win(QWidget):
             self.cur_line = self.cur_line + data.shape[1]
 
         # this is data to be graphed. It is the most recent data, of the length that we want to graph
-        data = self.board.get_data_quantity(self.num_points)
+        #data = self.board.get_data_quantity(self.num_points)
         for count, channel in enumerate(self.exg_channels):
             # plot timeseries
             DataFilter.detrend(data[channel], DetrendOperations.CONSTANT.value)
@@ -234,27 +191,15 @@ class graph_win(QWidget):
                 0,
             )
             self.curves[count].setData(data[channel].tolist())
-
         self.curves[len(self.exg_channels)].setData(data[self.marker_channels].tolist())
-        logger.debug(
-            "Marker channel data was {}".format(data[self.marker_channels].tolist())
-        )
-        logger.debug(
-            "Graph window finished updating (successfully got data from board and applied it to graphs)"
-        )
+        logger.debug('Marker channel data was {}'.format(data[self.marker_channels].tolist()))
+        logger.debug('Graph window finished updating (successfully got data from board and applied it to graphs)')
 
     def closeEvent(self, event):
         self.timer.stop()
-        self.board.stop()
         logger.info(self.data.shape)
         logger.info(self.data)
         logger.info("Now closing graph window")
         self.close()
 
 
-if __name__ == "__main__":
-    app = pg.mkQApp("MultiPlot Widget Example")
-    win = graph_win()
-    win.show()
-    # sys.exit(app.exec())
-    pg.exec()
