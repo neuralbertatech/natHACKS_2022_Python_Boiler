@@ -86,52 +86,18 @@ class graph_win(QWidget):
         self.board_id = get_board_id(data_type, hardware, model)
         self.exg_channels = BoardShim.get_exg_channels(self.board_id)
 
-        # by default, not using this (turn back on if you have most recent brainflow)
-        # in the most recent version of brainflow, you can access an additional muse channel,
-        # correponding to the aux port. However, this update breaks that bandstop filter, 
-        # so make sure to turn that off (in self.update)
-        if self.board_id in (21,22,42) and True:
-            # muse devices have an extra eeg channel. We need to configure th board
-            # to include it before we strat the stream, so we'll make our Board in
-            # manual mode so we can start the stream ourselves.
-            # if we are using muse hardware get a channel for the device's aux port
-            self.aux_channels = BoardShim.get_other_channels(self.board_id)
-            self.using_aux_channels = True
-        else:
-            self.using_aux_channels = False
-
         self.sampling_rate = BoardShim.get_sampling_rate(self.board_id)
         self.update_speed_ms = 50
         self.window_size = 5
         self.num_points = self.window_size * self.sampling_rate
 
-        if self.board_id in (21,22,42) and True:
-            # muse devices have an extra eeg channel. We need to configure th board
-            # to include it before we strat the stream, so we'll make our Board in
-            # manual mode so we can start the stream ourselves.
-            manual_mode = True
-            # if we are using muse hardware get a channel for the device's aux port
-            self.aux_channels = BoardShim.get_other_channels(self.board_id)
-            self.using_aux_channels = False
-        else:
-            manual_mode = False
-            self.using_aux_channels = False
-        self.board = Board(data_type, hardware, model, board_id, serial_port=serial_port, num_points = self.num_points,manual_mode = manual_mode)
-
-        if manual_mode:
-            logger.info('manual mode section ran')
-            # using muse. configure so we get 5h eeg channel, and start stream
-            self.board.board.config_board("p50")
-            self.board.board.start_stream()
+        self.board = Board(data_type, hardware, model, board_id, serial_port=serial_port, num_points = self.num_points)
 
         self.hardware_connected = True
         logger.info("Hardware connected; stream started.")
 
         self.chan_num = len(self.exg_channels)
         self.exg_channels = np.array(self.exg_channels)
-        if self.using_aux_channels:
-            self.aux_channels = np.array(self.aux_channels)
-        print('board decription {}'.format(BoardShim.get_board_descr(board_id)))
 
         logger.debug('EXG channels is {}'.format(self.exg_channels))
 
@@ -161,10 +127,7 @@ class graph_win(QWidget):
     def _init_timeseries(self):
         self.plots = list()
         self.curves = list()
-        if self.using_aux_channels:
-            num_curves = self.chan_num + len(self.aux_channels)
-        else:
-            num_curves = self.chan_num
+        num_curves = self.chan_num
         for i in range(num_curves):
             p = self.graphWidget.addPlot(row=i, col=0)
             p.showAxis("left", False)
@@ -219,7 +182,6 @@ class graph_win(QWidget):
                 FilterTypes.BUTTERWORTH.value,
                 0,
             )
-            logging.info(' channel, data[channel] before bandstop {}\n {}'.format(channel,data[channel]))
             DataFilter.perform_bandstop(
                 data[channel],
                 self.sampling_rate,
@@ -239,10 +201,6 @@ class graph_win(QWidget):
                 0,
             )
             self.curves[count].setData(data[channel].tolist())
-        if self.using_aux_channels:
-            for count, channel in enumerate(self.aux_channels):
-                self.curves[len(self.exg_channels)+count].setData(data[channel].tolist())
-            logger.debug('AUX channel data was {}'.format(data[self.aux_channels].tolist()))
         logger.debug('Graph window finished updating (successfully got data from board and applied it to graphs)')
 
     def closeEvent(self, event):
