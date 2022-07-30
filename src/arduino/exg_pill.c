@@ -27,8 +27,13 @@
 
 #define SAMPLE_RATE 125
 #define BAUD_RATE 115200
-#define INPUT_PIN A0
+#define INPUT_PIN0 A0
+#define INPUT_PIN1 A1
+#define INPUT_PIN2 A2
+#define INPUT_PIN3 A3
+#define INPUT_PIN4 A4
 
+char buff[1024];
 
 void setup() {
   // Serial connection begin
@@ -49,7 +54,12 @@ void loop() {
   // Sample
   if(timer < 0){
     timer += 1000000 / SAMPLE_RATE;
-    int sensor_value = analogRead(INPUT_PIN);
-    Serial.println(sensor_value);
+    int sensor_value0 = analogRead(INPUT_PIN0);
+    int sensor_value1 = analogRead(INPUT_PIN1);
+    int sensor_value2 = analogRead(INPUT_PIN2);
+    int sensor_value3 = analogRead(INPUT_PIN3);
+    int sensor_value4 = analogRead(INPUT_PIN4);
+    sprintf(buff, "%i,%i,%i,%i,%i", sensor_value0, sensor_value1, sensor_value2, sensor_value3, sensor_value4);
+    Serial.println(buff);
   }
 }
