@@ -1,4 +1,5 @@
 import logging
+import platform
 
 import brainflow
 import numpy as np
@@ -12,6 +13,7 @@ CONNECT = "Task live"
 MUSE = "Muse"
 BCI = "openBCI"
 PILL = "EXG Pill"
+GTEC = "Gtec"
 
 # Model types
 GANGLION = "Ganglion"
@@ -20,6 +22,7 @@ CYTON_DAISY = "Cyton-Daisy"
 MUSE_2 = "Muse 2"
 MUSE_S = "Muse S"
 EXG_PILL = "EXG Pill"
+UNICORN = "Unicorn"
 
 
 def get_serial_port(board_id):
@@ -76,13 +79,15 @@ class Board(BoardShim):
             self.board_id is not None
         ), "Error: Undefined combination of arguments passed to 'get_board_id'"
 
-        # Get com port for EEG device
-        self.params.serial_port = (
-            serial_port if serial_port is not None else get_serial_port(self.board_id)
-        )
+        # Get com port for EEG device - not required for unicorn, or muse boards on a mac
+        use_serial_port = [0,1,2,22,21,30]
+        if self.board_id in use_serial_port:
+            self.params.serial_port = (
+                serial_port if serial_port is not None else get_serial_port(self.board_id)
+            )
 
         # Initialize BoardShim object
-        super().__init__(self.board_id, self.params)
+        # super().__init__(self.board_id, self.params)
 
         if debug == True:
             BoardShim.enable_dev_board_logger()
@@ -108,6 +113,7 @@ class Board(BoardShim):
             self.num_points = num_points
 
         self.board = BoardShim(self.board_id, self.params)
+        logging.info('about to prepare session')
         self.board.prepare_session()
 
         print(
@@ -183,11 +189,20 @@ def get_board_id(data_type, hardware, model):
                 board_id = 2
         elif hardware == MUSE:
             if model == MUSE_2:
-                board_id = 22
+                if platform.system() == "Windows":
+                    board_id = 22
+                else:
+                    board_id = 38
             elif model == MUSE_S:
-                board_id = 21
+                if platform.system() == "Windows":
+                    board_id = 21
+                else:
+                    board_id = 39
         elif hardware == PILL:
             board_id = 30
+        elif hardware == GTEC:
+            if model == UNICORN:
+                board_id = 8
     elif data_type == SIMULATE:
         board_id = -1
 

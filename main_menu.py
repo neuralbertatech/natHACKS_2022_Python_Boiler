@@ -81,6 +81,8 @@ from Board import (
     SIMULATE,
     PILL,
     EXG_PILL,
+    GTEC,
+    UNICORN,
     get_board_id,
 )
 from src.board.exg_pill import ExgPill
@@ -207,7 +209,7 @@ class MenuWindow(QMainWindow):
         # drop down menu to decide what hardware
         self.hardware_dropdown = QComboBox()
         self.hardware_dropdown.setPlaceholderText("Select hardware")
-        self.hardware_dropdown.addItems([BCI, MUSE, PILL])
+        self.hardware_dropdown.addItems([BCI, MUSE, PILL, GTEC])
         self.hardware_dropdown.activated.connect(self.handle_hardware_choice)
         self.hardware_label = QLabel("Select hardware")
         self.hardware_layout.addWidget(self.hardware_label)
@@ -378,10 +380,10 @@ class MenuWindow(QMainWindow):
             self.model_dropdown.addItems([GANGLION, CYTON, CYTON_DAISY])
         elif self.hardware_dropdown.currentText() == MUSE:
             self.model_dropdown.addItems([MUSE_2, MUSE_S])
-        elif self.hardware_dropdown.currentText() == "Blueberry":
-            self.model_dropdown.addItem("Prototype")
         elif self.hardware_dropdown.currentText() == PILL:
             self.model_dropdown.addItems([EXG_PILL])
+        elif self.hardware_dropdown.currentText() == GTEC:
+            self.model_dropdown.addItem(UNICORN)
 
     def handle_model_choice(self):
         """Handles changes to the model dropdown"""
