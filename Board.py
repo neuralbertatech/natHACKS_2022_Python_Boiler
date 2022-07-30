@@ -87,7 +87,7 @@ class Board(BoardShim):
             )
 
         # Initialize BoardShim object
-        # super().__init__(self.board_id, self.params)
+        super().__init__(self.board_id, self.params)
 
         if debug == True:
             BoardShim.enable_dev_board_logger()
