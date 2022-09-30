@@ -24,8 +24,6 @@ from sklearn.model_selection import train_test_split
 
 import time
 import numpy as np
-
-import os
 ###########################################################
 
 class model_win(QWidget):
@@ -35,8 +33,7 @@ class model_win(QWidget):
         csv_name=None,
     ):
         super().__init__()
-        # self.csv_name = csv_name
-        self.csv_name = "C:\\Users\\eredm\\Documents\\GitHub\\natHACKS_2022_Python_Boiler\\imu_boiler_1.csv"
+        self.csv_name = csv_name
         self.parent = parent
 
         self.setFixedSize(200, 200)
@@ -57,6 +54,8 @@ class model_win(QWidget):
 
         #### might not need
         self.show()
+
+        self.file_name = parent.csv_name
 
         X = []
         y = []
@@ -85,7 +84,7 @@ class model_win(QWidget):
             print(len(temp_targ))
 
             X.append(temp_targ)
-            y.append(df.iloc[targ_trigs[targ]]["trigger"] - 1000)
+            y.append(df.iloc[targ_trigs[targ]]["trigger"])
             print(df.iloc[targ_trigs[targ]]["trigger"])
             temp_targ = []
         y = np.array(y)
@@ -96,7 +95,6 @@ class model_win(QWidget):
 
         dropout = 0.2
         input_shape = (100, 3)
-
 
         imu_model = Sequential()
         imu_model.add(
@@ -174,7 +172,7 @@ class model_win(QWidget):
 
             print(output)
 
-        self.model.save("saved_models/{}_model".format(self.csv_name))
+        self.model.save("saved_models/{}_model".format(self.file_name))
         # self.model.save('saved_model/my_model')
 
         self.stopAnimation()

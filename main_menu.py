@@ -108,6 +108,10 @@ logger.info("Program started at {}".format(time.time()))
 
 from baseline_window import baseline_win
 
+from IMUbaseline_window import IMUbaseline_win
+
+from model_window import model_win
+
 # results not implemented yet
 from graph_window import graph_win
 from impedance_window import impedance_win
@@ -130,7 +134,7 @@ class MenuWindow(QMainWindow):
             parent (QWindow, optional): The parent of the main window. Defaults to None.
         """
         super().__init__()
-        logger.info("Initializing")
+        # logger.info("Initializing")
 
         ####################################
         ##### Init Main Window Globals #####
@@ -162,14 +166,6 @@ class MenuWindow(QMainWindow):
         widget.setLayout(self.layout)
         self.setCentralWidget(widget)
 
-        ### DEBUG ###
-        self.debug = False
-
-        if self.debug == True:
-            self.bci_serial_port = "COM1"
-            self.arduino_con = "Debug"
-            self.arduino_serial_port = "COM2"
-
         ###################################
         ##### Init GUI Input Elements #####
         ###################################
@@ -199,6 +195,24 @@ class MenuWindow(QMainWindow):
         self.data_type = None
         self.board_id = None
 
+
+        ### DEBUG ###
+        self.debug = True
+
+        self.action_num = 5
+        self.epoch_len = 100
+
+        if self.debug == True:
+            self.bci_serial_port = "COM1"
+            self.arduino_con = "Debug"
+            self.arduino_serial_port = "COM5"
+            # self.csv_name= "Test.csv"
+            self.board_id = -1
+            self.model = "Muse 2"
+            self.hardware = "Muse"
+            self.data_type = "Task simulate"
+            # self.model_window_button.setEnabled(True)
+
         ### TITLE ###
         self.title = QLabel()
         self.title.setFont(QtGui.QFont("Arial", 14))
@@ -225,7 +239,7 @@ class MenuWindow(QMainWindow):
         self.model_layout.addWidget(self.model_label)
         self.model_layout.addWidget(self.model_dropdown)
         ### CSV ###
-        self.csv_name = "eeg_" + log_file[:-4] + ".csv"
+        self.csv_name = "imu_" + log_file[:-4] + ".csv"
         self.csv_name_edit = QLineEdit(self.csv_name)
         self.csv_name_edit.returnPressed.connect(self.csv_name_changed)
         self.csv_label = QLabel(
@@ -262,7 +276,7 @@ class MenuWindow(QMainWindow):
         self.arduino_label = QLabel("Arduino Settings")
         self.arduino_dropdown = QComboBox()
         self.arduino_dropdown.setPlaceholderText("Select connection to arduino")
-        self.arduino_dropdown.addItems(["Wired", "NeuroStimDuino", "Wireless", "Debug"])
+        self.arduino_dropdown.addItems(["Wired", "NeuroStimDuino", "Wireless", "Wireless IMU", "Debug"])
         self.arduino_dropdown.activated.connect(self.handle_arduino_dropdown)
         self.arduino_port = QLineEdit()
         self.arduino_port.setEnabled(False)
@@ -298,6 +312,8 @@ class MenuWindow(QMainWindow):
         |                                           |
         |    arduino       graph        imped       |
         |                 baseline                  |
+        |                 imu_baseline              |
+        |                 create_model              |
         |-------------------------------------------|
         """
 
@@ -338,6 +354,27 @@ class MenuWindow(QMainWindow):
             self.baseline_window_button, 6, 0, 1, 1, QtCore.Qt.AlignHCenter
         )
         self.baseline_window_button.clicked.connect(self.open_baseline_window)
+
+        # here is a button for the imu baseline window
+        self.IMUbaseline_window_button = QPushButton("IMU Baseline")
+        self.IMUbaseline_window_button.setEnabled(False)
+        self.layout.addWidget(
+            self.IMUbaseline_window_button, 6, 0, 1, 2, QtCore.Qt.AlignHCenter
+        )
+        self.IMUbaseline_window_button.clicked.connect(self.open_IMUbaseline_window)
+
+        # here is a button for the imu baseline window
+        self.model_window_button = QPushButton("Create Model")
+        self.model_window_button.setEnabled(False)
+        self.layout.addWidget(
+            self.model_window_button, 6, 0, 2, 2, QtCore.Qt.AlignHCenter
+        )
+        self.model_window_button.clicked.connect(self.open_model_window)
+
+        if self.debug == True:
+            self.IMUbaseline_window_button.setEnabled(True)
+            self.arduino_serial_port = "COM5"
+            self.model_window_button.setEnabled(True)
 
         # targ limb
         self.targ_limb = None
@@ -466,6 +503,7 @@ class MenuWindow(QMainWindow):
         # check for correct value entering and enable type dropdown menu
         if self.arduino_port.text().isdigit():
             self.arduino_window_button.setEnabled(True)
+            self.IMUbaseline_window_button.setEnabled(True)
             self.arduino_serial_port = "COM" + self.arduino_port.text()
         else:
             self.arduino_window_button.setEnabled(False)
@@ -561,6 +599,40 @@ class MenuWindow(QMainWindow):
         else:
             logger.info("User must fix error before baseline window can be created.")
 
+    ####################### Add in IMU visualization window
+
+    def open_IMUbaseline_window(self):
+        """Opens the baseline window, moves program control over."""
+        if self.checks_for_window_creation():
+            # logger.info("MenuWindow is creating baseline window")
+            self.IMUbaseline_window = IMUbaseline_win(
+                parent=self,
+                csv_name=self.csv_name,
+                # serial_port=self.bci_serial_port,
+                arduino_serial_port=self.arduino_serial_port
+            )
+            self.IMUbaseline_window.show()
+            # logger.info("Created baseline window")
+        else:
+            pass
+            # logger.info("User must fix error before baseline window can be created.")
+
+    def open_model_window(self):
+        """Opens the baseline window, moves program control over."""
+        if self.checks_for_window_creation():
+            # logger.info("MenuWindow is creating baseline window")
+            self.model_window = model_win(
+                parent=self,
+                csv_name=self.csv_name,
+                # serial_port=self.bci_serial_port,
+                # arduino_serial_port=self.arduino_serial_port
+            )
+            self.model_window.show()
+            # logger.info("Created baseline window")
+        else:
+            pass
+            # logger.info("User must fix error before baseline window can be created.")
+
     def checks_for_window_creation(self):
         """Checks that all attributes are properly set for both the impedance and graph window and baseline.
         Logs a warning message about what must be fixed.
@@ -596,6 +668,6 @@ class MenuWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = MenuWindow()
-    logger.info("MenuWindow created")
+    # logger.info("MenuWindow created")
     win.show()
     sys.exit(app.exec())
