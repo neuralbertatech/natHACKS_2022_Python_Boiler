@@ -33,11 +33,9 @@ import sys
 import time
 import pandas as pd
 
-from threading import Thread
-import serial
+from functools import partial
 
-# from functools import partial
-# import pygatt
+import pygatt
 # import collections
 import struct
 
@@ -73,52 +71,85 @@ class IMUbaseline_win(QWidget):
         arduino_serial_port=None
     ):
         super().__init__()
-        self.csv_name = csv_name[:-4] + "_" + str(int(time.time())) + ".csv"
-        # self.csv_name = csv_name
+        # self.csv_name = csv_name[:-4] + "_" + str(int(time.time())) + ".csv"
+        self.csv_name = csv_name
         self.parent = parent
         self.arduino_serial_port=arduino_serial_port
 
-        self.imu_count = 0
+        self.imu_count = 1
 
-        self.thread = None
+        self.data = [[] for x in range(self.imu_count)]
+        # self.data = []
 
-        self.data_types = ['orient_data','accel_data','gyro_data']
-        self.count_types = ['orient_count','accel_count','gyro_count']
+        '''
+        
+        with the move to async - the programmatic event marker will need to be based on an IMU specific sample count. 
+        marker can be appended to a a given incoming data packet - will then want to add each packet to not just be appended, but appended as a list 
+
+        '''
 
         self.imu_dict = {
             0: {
+                'address' : '0A:54:F1:E2:B3:C1',
                 'is_connected' : False,
-                'is_read' : False,
-                'local_start_time' : None,
-                'local_end_time' : None,
+                'is_full_subscribed' : False,
 
+                'orient_UUID' : 'C8F88594-2217-0CA6-8F06-A4270B675D68',
+                'is_subscribed_orient' : False,
                 'orient_count' : 0,
                 'orient_data' : [],
 
+                'accel_UUID' : 'C8F88594-2217-0CA6-8F06-A4270B675D24',
+                'is_subscribed_accel' : False,
                 'accel_count' : 0,
                 'accel_data' : [],
 
+                'gyro_UUID' : 'C8F88594-2217-0CA6-8F06-A4270B675D32',
+                'is_subscribed_gyro' : False,
                 'gyro_count' : 0,
                 'gyro_data' : [],
+
             },   
             1: {
+                'address' : 'C8:87:39:14:AC:BF',
+                'read_UUID' : 'C8F88594-2217-0CA6-8F06-A4270B675D69',
                 'is_connected' : False,
-                'is_read' : False,
-                'local_start_time' : None,
-                'local_end_time' : None,
-
-                'orient_count' : 0,
-                'orient_data' : [],
-
-                'accel_count' : 0,
-                'accel_data' : [],
-
-                'gyro_count' : 0,
-                'gyro_data' : [],
+                'is_subscribed' : False,
+                'data' : [],
+                'count' : 0
             },
+            2: {
+                'address' : '0A:54:F1:E2:B3:C1',
+                'read_UUID' : '917649A1-D98E-11E5-9EEC-0002A5D5C51B',
+                'is_connected' : False,
+                'is_subscribed' : False,
+                'data' : [],
+                'count' : 0
+            },   
+            3: {
+                'address' : '0A:54:F1:E2:B3:C1',
+                'read_UUID' : 'C8F88594-2217-0CA6-8F06-A4270B675D69',
+                'is_connected' : False,
+                'is_subscribed' : False,
+                'data' : [],
+                'count' : 0
+            },
+            4: {
+                'address' : '0A:54:F1:E2:B3:C1',
+                'read_UUID' : '917649A1-D98E-11E5-9EEC-0002A5D5C51B',
+                'is_connected' : False,
+                'is_subscribed' : False,
+                'data' : [],
+                'count' : 0
+            },   
         }
 
         self.is_receiving = False
+
+        self.count = 0
+
+        if self.parent.debug == True:
+            print("DEBUG == True")
 
         self.setMinimumSize(600, 600)
         self.setWindowIcon(QtGui.QIcon("utils/logo_icon.jpg"))
@@ -140,6 +171,12 @@ class IMUbaseline_win(QWidget):
 
         # whether to actually display a stimulus of specified color
         self.show_stim = False
+
+        # by default we are going to have the classifier predict Right Arm as the correct
+        # give a graded - provide stimulation when the probability is above a set threshold of 90%
+        # need to save model and then reload when starting session
+
+        self.stim_str = ["Left Arm", "Right Arm"]
 
         self.stim_dict = {
             0 : {
@@ -167,15 +204,15 @@ class IMUbaseline_win(QWidget):
                 'stim_str' : 'Reach Up',
                 'trigger' : 1004
             },
-            5 : {
-                'movie_file' : 'touch_nose.gif',
-                'stim_str' : 'Touch Nose',
-                'trigger' : 1005
-            },
+            # 5 : {
+            #     'movie_file' : 'touch_nose.gif',
+            #     'stim_str' : 'Touch Nose',
+            #     'trigger' : 1005
+            # },
         }
 
         # now we can init stuff for our trials
-        self.trials_per_move = 5
+        self.trials_per_move = 2
         self.moves = self.parent.action_num
         self.total_trials = self.moves * self.trials_per_move
 
@@ -217,81 +254,76 @@ class IMUbaseline_win(QWidget):
 
         self.com_list = ['COM5','COM6']
 
-        ################ Connecting to serial port ##########################
+        for x in range(self.imu_count):
+            print("init loop on cycle: " + str(x))
 
-        self.port = 'COM27'
-        self.baud = 9600
+            self.adapter = pygatt.BGAPIBackend(serial_port=self.com_list[x]) #virtual COM port for the BlueGiga dongle
+            print('Trying to connect to: ' + str(self.arduino_serial_port) + ' at ' + str(self.imu_dict[x]['address']))
+            # Attempt to connect to the device
+            try:
+                self.adapter.start()
+                self.device = self.adapter.connect(self.imu_dict[x]['address']) 
+                print(self.device)
+                print('Connected!')
+                self.imu_dict[x]['is_connected'] = True
+            except(pygatt.exceptions.NotConnectedError):
+                print('Failed to connect to: ' + str(self.arduino_serial_port) + ' at ' + str(self.imu_dict[x]['address']))
 
-        self.dataNumBytes = 16
-        self.rawData = bytearray(self.dataNumBytes)
+            #### subscribe to orient
+            try:
+                self.device.subscribe(self.imu_dict[x]['orient_UUID'], callback=self.subscribeCallback_orient, indication=False, wait_for_response=True)
+                print("successfully to subscribe to orient_UUID")
+            except:
+                print("failed to subscribe to orient_UUID")
 
-        print('Trying to connect to: ' + str(self.port) + ' at ' + str(self.baud) + ' BAUD.')
-        try:
-            self.serialConnection = serial.Serial(self.port, self.baud, timeout=4)
-            print('Connected to ' + str(self.port) + ' at ' + str(self.baud) + ' BAUD.')
-        except:
-            print("Failed to connect with " + str(self.port) + ' at ' + str(self.baud) + ' BAUD.')
+            #### subscribe to accel
+            try:
+                self.device.subscribe(self.imu_dict[x]['accel_UUID'], callback=self.subscribeCallback_accel, indication=False, wait_for_response=True)
+                print("successfully to subscribe to accel_UUID")
+            except:
+                print("failed to subscribe to accel_UUID")
 
-        self.readSerialStart()
+            #### subscribe to gyro
+            try:
+                self.device.subscribe(self.imu_dict[x]['gyro_UUID'], callback=self.subscribeCallback_gyro, indication=False, wait_for_response=True)
+                print("successfully to subscribe to gyro_UUID")
+            except:
+                print("failed to subscribe to gyro_UUID")
 
-    def readSerialStart(self):
-        if self.thread == None:
-            self.thread = Thread(target=self.backgroundThread)
-            self.thread.start()
-            # Block till we start receiving values
-            while self.is_receiving != True:
-                time.sleep(0.1)
+        while self.is_receiving == False:
+            print("waiting for subscribtions to finish")
+            if self.imu_dict[0]['is_subscribed_orient'] == True and self.imu_dict[0]['is_subscribed_accel'] == True and self.imu_dict[0]['is_subscribed_gyro'] == True:
+                self.is_receiving = True
+            time.sleep(0.5)
 
-    def backgroundThread(self):    # retrieve data
-        time.sleep(1.0)  # give some buffer time for retrieving data
-        self.serialConnection.reset_input_buffer()
-        while (self.is_end == False):
-            #######################
-            ### add a self.imu_init == False: then wait for some bytes to be send to 
-            ### arrive expect a short (0,1)
-            ### then set a self.imu_ready = True
-            ### then send a 1
-            cur_bytes = self.serialConnection.inWaiting()
-            # print("Number of bytes in the queue: " + str(cur_bytes))
-            if cur_bytes >= self.dataNumBytes:
-                bytes_read = self.serialConnection.readinto(self.rawData)
-                # print("bytes read:" + str(bytes_read)) # a boolean of how many recieved form the last line
-                
-                # Stop the block in the readSerialStart
-                if self.is_receiving == False:
-                    self.is_receiving = True 
+    def subscribeCallback_orient(self, handle, value):
+        if self.imu_dict[0]['is_subscribed_orient'] == False:
+            self.imu_dict[0]['is_subscribed_orient'] = True
+        elif self.is_receiving == True:
+            self.value = struct.unpack('3f', value)    
+            fdata = [0] + [self.imu_dict[0]['orient_count']] + list(self.value) # concat a blank trigger list to the incoming list (changed from tuple form)
+            self.imu_dict[0]['orient_data'].append(fdata)    # we get the latest data point and append it to our array
+        self.imu_dict[0]['orient_count'] += 1 # shift the count pointer to the new entry
 
-                val = struct.unpack('hhfff', self.rawData)
-                imu = val[0]
-                char = val[1]
+    def subscribeCallback_accel(self, handle, value):
+        if self.imu_dict[0]['is_subscribed_accel'] == False:
+            self.imu_dict[0]['is_subscribed_accel'] = True
+        elif self.is_receiving == True:
+            self.value = struct.unpack('3f', value)    
+            # fdata = [0] + [self.imu_dict[0]['accel_count']] + list(self.value) # concat a blank trigger list to the incoming list (changed from tuple form)
+            fdata = list(self.value) # concat a blank trigger list to the incoming list (changed from tuple form)
+            self.imu_dict[0]['accel_data'].append(fdata)    # we get the latest data point and append it to our array
+        self.imu_dict[0]['accel_count'] += 1 # shift the count pointer to the new entry
 
-                # The first time we get data from a new board - we flip boolean for that board's subdict in 
-                # imu_dict, save the time of the first read i.e. start time, and increment the imu_count so
-                if self.imu_dict[imu]['is_read'] == False:
-                    self.imu_dict[imu]['local_start_time'] = time.time()
-                    self.imu_dict[imu]['is_read'] = True
-                    self.imu_count += 1
-
-                print("-------------------------")
-                print(val)
-                print(len(val))
-
-                print("imu index:" + str(imu))
-                print("characteristic index:" + str(char))
-                print(self.data_types[char])
-
-                val = list(val)
-                if char == 0: # if the first characteristic of the first device - add a empty trigger AND a count to the list
-                    val = [0] + [self.imu_dict[imu][self.count_types[char]]] + val[2:]
-                    self.imu_dict[imu][self.data_types[char]].append(val)
-                else:
-                    self.imu_dict[imu][self.data_types[char]].append(val[2:]) # for all other imu/char combo - only save the float values
-
-                # print(val)
-                # print(len(val))
-                # print("-------------------------")
-
-                self.imu_dict[imu][self.count_types[char]] += 1 # shift the count pointer to the new entry
+    def subscribeCallback_gyro(self, handle, value):
+        if self.imu_dict[0]['is_subscribed_gyro'] == False:
+            self.imu_dict[0]['is_subscribed_gyro'] = True
+        elif self.is_receiving == True:
+            self.value = struct.unpack('3f', value)    
+            # fdata = [0] + [self.imu_dict[0]['gyro_count']] + list(self.value) # concat a blank trigger list to the incoming list (changed from tuple form)
+            fdata = list(self.value) # concat a blank trigger list to the incoming list (changed from tuple form)
+            self.imu_dict[0]['gyro_data'].append(fdata)    # we get the latest data point and append it to our array
+        self.imu_dict[0]['gyro_count'] += 1 # shift the count pointer to the new entry
 
     def set_movie(self):
         print(self.stim_dict[self.stim_code]['movie_file'])
@@ -304,6 +336,7 @@ class IMUbaseline_win(QWidget):
         print("start trial")
         print("self.curr_trial: " + str(self.curr_trial))
 
+        # starts trial - starts timers.
         logging.info("starting trial")
         self.running_trial = True
         # setting current color and stim code based on value for current trial
@@ -311,10 +344,15 @@ class IMUbaseline_win(QWidget):
         time.sleep(1)
 
         if self.curr_trial < self.total_trials:
+            print(self.curr_trial)
+            print("self.curr_trial")
+            print(self.total_trials)
+            print("self.total_trials")
             self.start_stim()
         else:
             logging.info("all trials done")
             self.finished = True
+            # self.board.insert_marker(self.end_trig)
             self.on_end()
 
     def start_stim(self):
@@ -323,12 +361,13 @@ class IMUbaseline_win(QWidget):
 
         self.stim_code = self.trials[self.curr_trial]\
 
+        logging.info("starting stim")
         self.show_stim = True
+        # stim_wait = time.time()
         self.responding_time = True
         self.set_movie()
 
-        for imu in range(self.imu_count):
-            self.imu_dict[imu]['orient_data'][-1][0] = self.stim_dict[self.stim_code]['trigger'] # replace the blank trigger
+        self.imu_dict[0]['orient_data'][-1][0] = self.stim_dict[self.stim_code]['trigger'] # replace the blank trigger
 
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.end_stim)
@@ -352,87 +391,32 @@ class IMUbaseline_win(QWidget):
         self.stim_timer.start(3000)
 
     def on_end(self, closed=False):
-        
-        self.is_end == True
-
-        # serial_open = self.serialConnection.is_open
-        # print("serial open: ")
-        # print(serial_open)
-        for imu in range(self.imu_count):
-            self.imu_dict[imu]['local_end_time'] = time.time()
-
-        try:
-            print("closing serial connection in on_end")
-            serial_open = self.serialConnection.is_open
-            print("serial open: ")
-            print(serial_open)
-            if serial_open == True:
-                self.serialConnection.close()
-            serial_open = self.serialConnection.is_open
-            print("serial open: ")
-            print(serial_open)
-        except:
-            print("closing serialConnection threw an error")
-
         self.stim_timer.stop()
 
-        imu_data_size = []
+        orient_data = np.array(self.imu_dict[0]['orient_data'])
+        accel_data = np.array(self.imu_dict[0]['accel_data'])
+        gyro_data = np.array(self.imu_dict[0]['gyro_data'])
 
-        for i in range(self.imu_count):
-            orient_data = np.array(self.imu_dict[i]['orient_data'])
-            accel_data = np.array(self.imu_dict[i]['accel_data'])
-            gyro_data = np.array(self.imu_dict[i]['gyro_data'])
+        print("orient data:")
+        print(orient_data[0:10])
+        print("accel data:")
+        print(accel_data[0:10])
+        print("gyro data:")
+        print(gyro_data[0:10])
 
-            print("orient data from board {}:".format(str(i)))
-            print(orient_data[0:10])
-            print("accel data from board {}:".format(str(i)))
-            print(accel_data[0:10])
-            print("gyro data from board {}:".format(str(i)))
-            print(gyro_data[0:10])
+        min_size = min(np.shape(orient_data)[0],np.shape(accel_data)[0],np.shape(gyro_data)[0])
 
-            min_size = min(np.shape(orient_data)[0],np.shape(accel_data)[0],np.shape(gyro_data)[0])
+        print("orient len:" + str(np.shape(orient_data)[0]))
+        print("accel len:" + str(np.shape(accel_data)[0]))
+        print("gyro len:" + str(np.shape(gyro_data)[0]))
 
-            print("orient len from board " + str(i) + ":" + str(np.shape(orient_data)[0]))
-            print("accel len from board " + str(i) + ":" +  str(np.shape(accel_data)[0]))
-            print("gyro len from board " + str(i) + ":" +  str(np.shape(gyro_data)[0]))
+        print(min_size)
 
-            print(min_size)
-            imu_data_size.append(min_size)
+        data = np.concatenate((orient_data[0:min_size],accel_data[0:min_size],gyro_data[0:min_size]),axis=1)
 
-            start_time = self.imu_dict[imu]['local_start_time']
-            print(start_time)
-            end_time = self.imu_dict[imu]['local_end_time']
-            print(end_time)
-            time_delta = end_time - start_time
-            print(time_delta)
-            sampling_rate = min_size/time_delta
-            print("For board #" + str(i) + "the sampling rate was " + str(sampling_rate))
-
-        print("The imu data size for each board is:")
-        print(imu_data_size)
-        min_size_boards = min(imu_data_size)
-        print("The imu data size for the smallest board is:")
-        print(min_size_boards)
-
-        if self.imu_count == 1:
-            data = np.concatenate((orient_data[0:min_size],accel_data[0:min_size],gyro_data[0:min_size]),axis=1)
-
-            df = pd.DataFrame(data)
-            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
-            # df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
-        elif self.imu_count == 2:
-            data = np.concatenate(
-                (
-                    self.imu_dict[0]['orient_data'][0:min_size_boards],
-                    self.imu_dict[0]['accel_data'][0:min_size_boards],
-                    self.imu_dict[0]['gyro_data'][0:min_size_boards],  
-                    self.imu_dict[1]['orient_data'][0:min_size_boards],
-                    self.imu_dict[1]['accel_data'][0:min_size_boards],
-                    self.imu_dict[1]['gyro_data'][0:min_size_boards],  
-                ),
-                axis=1)
-            df = pd.DataFrame(data)
-            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
+        df = pd.DataFrame(data)
+        df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
+        # df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
 
         df.to_csv(self.csv_name,index=False)
         
@@ -449,7 +433,8 @@ class IMUbaseline_win(QWidget):
         self.label = QLabel()
         self.label.setFont(QtGui.QFont("Arial", 14))
         self.label.setText(
-            "Mirror the movements on the screen \n Press enter to begin"
+            # "Look at the fixation cross.\n right moving either the left arm or the right arm\nPress enter to begin"
+            "Mirror the movements on the screen"
         )
         self.layout.addWidget(self.label)
 
@@ -457,10 +442,16 @@ class IMUbaseline_win(QWidget):
         if event.key() == Qt.Qt.Key_Space:
             if self.responding_time == True:
                 logging.info("received user input during correct time")
+                # self.board.insert_marker(3)
             else:
                 logging.info("received user input during incorrect time")
 
         elif event.key() == Qt.Qt.Key_Return or event.key == Qt.Qt.Key_Enter:
+            # logging.info(
+            #     "hardware {} running trial {}".format(
+            #         self.hardware_connected, self.running_trial
+            #     )
+            # )
             if self.is_receiving and not self.running_trial:
                 self.label.setVisible(False)
                 self.start_trial()
@@ -515,26 +506,28 @@ class IMUbaseline_win(QWidget):
         self.curr_trial = self.total_trials
 
         try:
-            print("closing serial connection in closeEvent")
-            serial_open = self.serialConnection.is_open
-            print("serial open: ")
-            print(serial_open)
-            if serial_open == True:
-                self.serialConnection.close()
-            serial_open = self.serialConnection.is_open
-            print("serial open: ")
-            print(serial_open)
+            self.device.unsubscribe(self.imu_dict[0]['orient_UUID'], wait_for_response=False)
         except:
-            print("closing serialConnection threw an error")
+            print("threw error on orient unsub")
 
-        # try:
-        #     print("closing serial connection in closeEvent")
-        #     serial_open = self.serialConnection.is_open
-        #     if serial_open == True:
-        #         self.serialConnection.close()
-        # except:
-        #     pass
-        # return
+        time.sleep(0.5)
+
+        try:
+            self.device.unsubscribe(self.imu_dict[0]['accel_UUID'], wait_for_response=False)
+        except:
+            print("threw error on accel unsub")
+
+        time.sleep(0.5)
+
+        try:
+            self.device.unsubscribe(self.imu_dict[0]['gyro_UUID'], wait_for_response=False)
+        except:
+            print("threw error on gyro unsub")
+
+        print("past unsub")
+        # self.on_end(closed=True)
+        return
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

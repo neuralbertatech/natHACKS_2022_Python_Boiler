@@ -199,7 +199,7 @@ class MenuWindow(QMainWindow):
         ### DEBUG ###
         self.debug = True
 
-        self.action_num = 5
+        self.action_num = 1
         self.epoch_len = 100
 
         if self.debug == True:
