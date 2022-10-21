@@ -10,36 +10,38 @@
 
 #include <ArduinoBLE.h>
 
+
 //----------------------------------------------------------------------------------------------------------------------
-// BLE UUIDs
+// Date Time Struct
 //----------------------------------------------------------------------------------------------------------------------
 
-#define BLE_UUID_IMU_SERVICE               "917649A0-D98E-11E5-9EEC-0002A5D5C51B"
-#define BLE_UUID_ORIENT                  "C8F88594-2217-0CA6-8F06-A4270B675D68"
-#define BLE_UUID_ACCEL                   "C8F88594-2217-0CA6-8F06-A4270B675D24"
-#define BLE_UUID_GYRO                    "C8F88594-2217-0CA6-8F06-A4270B675D32"
-#define BLE_UUID_COUNT                     "C8F88594-2217-0CA6-8F06-A4270B675D82"
+#define CHAR_TIME_DATA_SIZE 11
 
-#define BLE_CHAR_NUM 3
-#define BLE_MAX_PERIPHERALS 2
-#define BLE_SCAN_INTERVALL 10000
+typedef struct __attribute__( ( packed ) )
+{
+  uint16_t year;
+  uint8_t month;
+  uint8_t day;
+  uint8_t hours;
+  uint8_t minutes;
+  uint8_t seconds;
+  float milliseconds;
+} date_time_t;
 
-#define FLOAT_BYTES 4
+union date_time_data
+{
+  struct __attribute__( ( packed ) )
+  {
+    date_time_t dateTime;
+  };
+  uint8_t bytes[ CHAR_TIME_DATA_SIZE ];
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+// IMU Data Struct
+//----------------------------------------------------------------------------------------------------------------------
+
 #define CHAR_DATA_SIZE 12
-
-BLEDevice peripherals[BLE_MAX_PERIPHERALS];
-BLECharacteristic orientCharacteristics[BLE_MAX_PERIPHERALS];
-BLECharacteristic accelCharacteristics[BLE_MAX_PERIPHERALS];
-BLECharacteristic gyroCharacteristics[BLE_MAX_PERIPHERALS];
-BLECharacteristic countCharacteristics[BLE_MAX_PERIPHERALS];
-int peripheralsConnected = 0;
-
-bool orientUpdate[BLE_MAX_PERIPHERALS];
-bool accelUpdate[BLE_MAX_PERIPHERALS];
-bool gyroUpdate[BLE_MAX_PERIPHERALS];
-
-//bool debugBool = true;
-bool debugBool = false;
 
 typedef struct __attribute__( ( packed ) )
 {
@@ -54,14 +56,58 @@ typedef union
   uint8_t bytes[ CHAR_DATA_SIZE ];
 } char_data_ut;
 
+
+//----------------------------------------------------------------------------------------------------------------------
+// BLE UUIDs
+//----------------------------------------------------------------------------------------------------------------------
+
+#define BLE_UUID_IMU_SERVICE             "917649A0-D98E-11E5-9EEC-0002A5D5C51B"
+
+#define BLE_UUID_ORIENT                  "C8F88594-2217-0CA6-8F06-A4270B675D68"
+#define BLE_UUID_ACCEL                   "C8F88594-2217-0CA6-8F06-A4270B675D24"
+#define BLE_UUID_GYRO                    "C8F88594-2217-0CA6-8F06-A4270B675D32"
+#define BLE_UUID_TIME                    "C8F88594-2217-0CA6-8F06-A4270B675D12"
+#define BLE_UUID_COUNT                   "C8F88594-2217-0CA6-8F06-A4270B675D82"
+
+#define BLE_CHAR_NUM 3
+#define BLE_MAX_PERIPHERALS 3
+#define BLE_SCAN_INTERVALL 10000
+
+#define FLOAT_BYTES 4
+
+BLEDevice peripherals[BLE_MAX_PERIPHERALS];
+BLECharacteristic orientCharacteristics[BLE_MAX_PERIPHERALS];
+BLECharacteristic accelCharacteristics[BLE_MAX_PERIPHERALS];
+BLECharacteristic gyroCharacteristics[BLE_MAX_PERIPHERALS];
+BLECharacteristic timeCharacteristics[BLE_MAX_PERIPHERALS];
+BLECharacteristic countCharacteristics[BLE_MAX_PERIPHERALS];
+
+int peripheralsConnected = 0;
+
+bool orientUpdate[BLE_MAX_PERIPHERALS];
+bool accelUpdate[BLE_MAX_PERIPHERALS];
+bool gyroUpdate[BLE_MAX_PERIPHERALS];
+bool timeUpdate[BLE_MAX_PERIPHERALS];
+
+//bool debugBool = true;
+bool debugBool = false;
+
+//bool debugConnectBool = true;
+bool debugConnectBool = false;
+
+bool sendIPAddresses = true;
+//bool sendIPAddresses = false;
+
 char_data_ut dataOrient[BLE_MAX_PERIPHERALS];
 char_data_ut dataAccel[BLE_MAX_PERIPHERALS];
 char_data_ut dataGyro[BLE_MAX_PERIPHERALS];
 
+date_time_data dataTimeDate[BLE_MAX_PERIPHERALS];
+
 const int BLE_LED_PIN = LED_BUILTIN;
 const int BLE_SCAN_LED_PIN = LED_BUILTIN;
 
-short info[2] = { 0, 0 };
+short info = 0;
 
 void setup()
 {
@@ -79,6 +125,8 @@ void setup()
   digitalWrite( BLE_SCAN_LED_PIN, HIGH );
   BLE.scanForUuid( BLE_UUID_IMU_SERVICE );
 
+  delay(1000);  // waits for a second - for the Python script to clear the serial buffer
+
   int peripheralCounter = 0;
   unsigned long startMillis = millis();
   while ( millis() - startMillis < BLE_SCAN_INTERVALL && peripheralCounter < BLE_MAX_PERIPHERALS )
@@ -89,9 +137,6 @@ void setup()
     {
       if ( peripheral.localName() == "ArduinoIMU" )
       {
-        if ( debugBool ) {
-          Serial.println(peripheral.address());
-        }
         boolean peripheralAlreadyFound = false;
         for ( int i = 0; i < peripheralCounter; i++ )
         {
@@ -104,6 +149,10 @@ void setup()
         {
           peripherals[peripheralCounter] = peripheral;
           peripheralCounter++;
+
+          if ( debugBool || debugConnectBool || sendIPAddresses ) {
+            Serial.println(peripheral.address());
+          }
         }
       }
     }
@@ -143,8 +192,52 @@ void setup()
   // iterate through all the detected matched peripherals
   for ( int i = 0; i < peripheralCounter; i++ )
   {
+    if ( debugConnectBool ) {
+      Serial.println("Connecting to peripheral in peripheralCounter: ");
+      Serial.println(i);
+    }
+
     peripherals[i].connect();
     peripherals[i].discoverAttributes();
+
+    if ( debugConnectBool ) {
+      Serial.println("Was able to discover attributes for peripheral in peripheralCounter: ");
+      Serial.println(i);
+    }
+
+    // here is where we get the timeCharacteristics on each of the peripherals    
+    BLECharacteristic timeCharacteristic = peripherals[i].characteristic( BLE_UUID_TIME );
+    if ( timeCharacteristic )                                                                                                   
+    {
+//      static int imuCount = 2;
+      timeCharacteristics[i] = timeCharacteristic;
+      timeCharacteristics[i].subscribe(); 
+
+       if ( debugConnectBool ) {
+        Serial.println("Was able to subscribe to time characteristic for peripheral in peripheralCounter: ");
+        Serial.println(i);
+       }
+//      delay(1000); // waits for a second
+      timeCharacteristics[i].readValue( dataTimeDate[i].bytes, CHAR_TIME_DATA_SIZE );
+      if ( debugBool ) {
+        Serial.println("printing time values for board number: ");
+        Serial.println(i);
+        Serial.println("init year: ");
+        Serial.println(dataTimeDate[i].dateTime.year);
+        Serial.println("init month: ");
+        Serial.println(dataTimeDate[i].dateTime.month);
+        Serial.println("init day: ");
+        Serial.println(dataTimeDate[i].dateTime.day);
+        Serial.println("init hour: ");
+        Serial.println(dataTimeDate[i].dateTime.hours);
+        Serial.println("init minutes: ");
+        Serial.println(dataTimeDate[i].dateTime.minutes);
+        Serial.println("init seconds: ");
+        Serial.println(dataTimeDate[i].dateTime.seconds);
+        Serial.println("init milliseconds: ");
+        Serial.println(dataTimeDate[i].dateTime.milliseconds);
+      }    
+    }
     
     // here is where we write the countCharacteristics on each of the peripherals    
     BLECharacteristic countCharacteristic = peripherals[i].characteristic( BLE_UUID_COUNT );
@@ -269,6 +362,32 @@ void loop()
           gyroUpdate[i] = true;
         }
       }
+
+      if ( !timeUpdate[i] ) {
+        if ( timeCharacteristics[i].valueUpdated() ) {
+          timeCharacteristics[i].readValue( dataTimeDate[i].bytes, CHAR_TIME_DATA_SIZE );
+          if ( debugBool ) {
+            Serial.println("printing time values for board number: ");
+            Serial.println(i);
+            Serial.println("init year: ");
+            Serial.println(dataTimeDate[i].dateTime.year);
+            Serial.println("init month: ");
+            Serial.println(dataTimeDate[i].dateTime.month);
+            Serial.println("init day: ");
+            Serial.println(dataTimeDate[i].dateTime.day);
+            Serial.println("init hour: ");
+            Serial.println(dataTimeDate[i].dateTime.hours);
+            Serial.println("init minutes: ");
+            Serial.println(dataTimeDate[i].dateTime.minutes);
+            Serial.println("init seconds: ");
+            Serial.println(dataTimeDate[i].dateTime.seconds);
+            Serial.println("init milliseconds: ");
+            Serial.println(dataTimeDate[i].dateTime.milliseconds);
+          }
+          timeUpdate[i] = true;
+        }
+      }
+      
     }
     if ( debugBool ) {
       Serial.println("Update bool array for the following board: ");
@@ -280,41 +399,26 @@ void loop()
       Serial.println("Gyro value");
       Serial.println(orientUpdate[i]);
     }
-    if ( orientUpdate[i] && accelUpdate[i] && gyroUpdate[i] ){
+    if ( orientUpdate[i] && accelUpdate[i] && gyroUpdate[i] && timeUpdate[i] ){
       orientUpdate[i] = false;
       accelUpdate[i] = false;
       gyroUpdate[i] = false;
+      timeUpdate[i] = false;
       if ( !debugBool ) {
-        info[0] = i;
-        info[1] = 0;
-        for (int x = 0; x < 2; x++){
-          byte packetArray[2] = {
-            ((uint8_t*)&info[x])[0],
-            ((uint8_t*)&info[x])[1],
-          };
-          Serial.write(packetArray, sizeof(packetArray));
-        }
-        Serial.write(dataOrient[i].bytes, CHAR_DATA_SIZE);
-  
-        info[1] = 1;
-        for (int x = 0; x < 2; x++){
-          byte packetArray[2] = {
-            ((uint8_t*)&info[x])[0],
-            ((uint8_t*)&info[x])[1],
-          };
-          Serial.write(packetArray, sizeof(packetArray));
-        }
-        Serial.write(dataAccel[i].bytes, CHAR_DATA_SIZE);
-  
-        info[1] = 2;
-        for (int x = 0; x < 2; x++){
-          byte packetArray[2] = {
-            ((uint8_t*)&info[x])[0],
-            ((uint8_t*)&info[x])[1],
-          };
-          Serial.write(packetArray, sizeof(packetArray));
-        }
-        Serial.write(dataGyro[i].bytes, CHAR_DATA_SIZE); 
+        info = i;
+        byte packetArray[2] = {
+          ((uint8_t*)&info)[0],
+          ((uint8_t*)&info)[1],
+        };
+        Serial.write(packetArray, sizeof(packetArray)); // 2 byte (h)
+
+        Serial.write(dataOrient[i].bytes, CHAR_DATA_SIZE); // 12 byte (f,f,f)
+
+        Serial.write(dataAccel[i].bytes, CHAR_DATA_SIZE); // 12 byte (f,f,f)
+
+        Serial.write(dataGyro[i].bytes, CHAR_DATA_SIZE); // 12 byte (f,f,f)
+
+        Serial.write(dataTimeDate[i].bytes, CHAR_TIME_DATA_SIZE); // 11 byte (h5bf)
       }
     }
   }

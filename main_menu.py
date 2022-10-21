@@ -204,13 +204,16 @@ class MenuWindow(QMainWindow):
 
         if self.debug == True:
             self.bci_serial_port = "COM1"
-            self.arduino_con = "Debug"
-            self.arduino_serial_port = "COM5"
+            self.imu_con = "Debug"
+            self.imu_serial_port = "COM5"
             # self.csv_name= "Test.csv"
+            self.imu_csv_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1']
+            self.imu = 'Arduino BLE 33'
             self.board_id = -1
             self.model = "Muse 2"
             self.hardware = "Muse"
             self.data_type = "Task simulate"
+            self.par = 1001 # need to add in a user input field that defaults to 1000 
             # self.model_window_button.setEnabled(True)
 
         ### TITLE ###
@@ -274,17 +277,17 @@ class MenuWindow(QMainWindow):
 
         ### ARDUINO ###
         self.arduino_label = QLabel("Arduino Settings")
-        self.arduino_dropdown = QComboBox()
-        self.arduino_dropdown.setPlaceholderText("Select connection to arduino")
-        self.arduino_dropdown.addItems(["Wired", "NeuroStimDuino", "Wireless", "Wireless IMU", "Debug"])
-        self.arduino_dropdown.activated.connect(self.handle_arduino_dropdown)
-        self.arduino_port = QLineEdit()
-        self.arduino_port.setEnabled(False)
-        self.arduino_port.setPlaceholderText("Enter Port # (Integers Only)")
-        self.arduino_port.textEdited.connect(self.handle_arduino_port)
+        self.imu_dropdown = QComboBox()
+        self.imu_dropdown.setPlaceholderText("Select connection to arduino")
+        self.imu_dropdown.addItems(["Wired", "NeuroStimDuino", "Wireless", "Wireless IMU", "Debug"])
+        self.imu_dropdown.activated.connect(self.handle_imu_dropdown)
+        self.imu_port = QLineEdit()
+        self.imu_port.setEnabled(False)
+        self.imu_port.setPlaceholderText("Enter Port # (Integers Only)")
+        self.imu_port.textEdited.connect(self.handle_imu_port)
         self.arduino_layout.addWidget(self.arduino_label)
-        self.arduino_layout.addWidget(self.arduino_dropdown)
-        self.arduino_layout.addWidget(self.arduino_port)
+        self.arduino_layout.addWidget(self.imu_dropdown)
+        self.arduino_layout.addWidget(self.imu_port)
         # self.arduino_process = None
 
         ### ADD INPUT SUBLAYOUTS TO MAIN ###
@@ -326,12 +329,12 @@ class MenuWindow(QMainWindow):
         self.impedance_window_button.clicked.connect(self.open_impedance_window)
 
         # here is a button to start the arduino window
-        self.arduino_window_button = QPushButton("Turn on Arduino")
-        self.arduino_window_button.setEnabled(False)
+        self.imu_window_button = QPushButton("Turn on Arduino")
+        self.imu_window_button.setEnabled(False)
         self.layout.addWidget(
-            self.arduino_window_button, 5, 0, 1, 1, QtCore.Qt.AlignHCenter
+            self.imu_window_button, 5, 0, 1, 1, QtCore.Qt.AlignHCenter
         )
-        self.arduino_window_button.clicked.connect(self.open_arduino_window)
+        self.imu_window_button.clicked.connect(self.open_imu_window)
 
         # here is a button to display graph
         self.graph_window_button = QPushButton("Graph")
@@ -373,7 +376,7 @@ class MenuWindow(QMainWindow):
 
         if self.debug == True:
             self.IMUbaseline_window_button.setEnabled(True)
-            self.arduino_serial_port = "COM5"
+            self.imu_serial_port = "COM5"
             self.model_window_button.setEnabled(True)
 
         # targ limb
@@ -487,32 +490,32 @@ class MenuWindow(QMainWindow):
             # print("Error: OpenBCI port # must be an integer.")
             self.title.setText("Select BCI Hardware Port")
 
-    def handle_arduino_dropdown(self):
-        """Handles actions within the arduino dropdown"""
+    def handle_imu_dropdown(self):
+        """Handles actions within the imu dropdown"""
         # check if arduino checkbox is enabled
-        self.arduino_con = self.arduino_dropdown.currentText()
-        self.arduino_port.setEnabled(True)
-        if self.arduino_port.text().isdigit():
-            self.arduino_window_button.setEnabled(True)
-            self.arduino_serial_port = "COM" + self.arduino_port.text()
+        self.imu_con = self.imu_dropdown.currentText()
+        self.imu_port.setEnabled(True)
+        if self.imu_port.text().isdigit():
+            self.imu_window_button.setEnabled(True)
+            self.imu_serial_port = "COM" + self.imu_port.text()
         else:
-            self.arduino_window_button.setEnabled(False)
+            self.imu_window_button.setEnabled(False)
 
-    def handle_arduino_port(self):
+    def handle_imu_port(self):
         """Handles changes to input in the arduino port field"""
         # check for correct value entering and enable type dropdown menu
-        if self.arduino_port.text().isdigit():
-            self.arduino_window_button.setEnabled(True)
+        if self.imu_port.text().isdigit():
+            self.imu_window_button.setEnabled(True)
             self.IMUbaseline_window_button.setEnabled(True)
-            self.arduino_serial_port = "COM" + self.arduino_port.text()
+            self.imu_serial_port = "COM" + self.imu_port.text()
         else:
-            self.arduino_window_button.setEnabled(False)
+            self.imu_window_button.setEnabled(False)
 
     #########################################
     ##### Functions for Opening Windows #####
     #########################################
 
-    def open_arduino_window(self):
+    def open_imu_window(self):
         """Opens the arduino window."""
         # this actually starts the arduino testing window
         # called by user pressing button, which is enabled by selecting from dropdowns
@@ -523,15 +526,15 @@ class MenuWindow(QMainWindow):
         #     self.arduino_process.close()
         #     self.arduino_process = None
         logger.info("creating arduino window")
-        if self.arduino_port.text().isdigit() != True:
+        if self.imu_port.text().isdigit() != True:
             logger.warning(
                 "failed to create arduino window because arduino port was not an integer"
             )
         else:
             self.data_window = ard_turn_on(
                 parent=self,
-                arduino_con=self.arduino_con,
-                arduino_port=self.arduino_serial_port,
+                imu_con=self.imu_con,
+                imu_port=self.imu_serial_port,
             )
             self.data_window.show()
             self.data_window_open = True
@@ -609,7 +612,7 @@ class MenuWindow(QMainWindow):
                 parent=self,
                 csv_name=self.csv_name,
                 # serial_port=self.bci_serial_port,
-                arduino_serial_port=self.arduino_serial_port
+                imu_serial_port=self.imu_serial_port
             )
             self.IMUbaseline_window.show()
             # logger.info("Created baseline window")
@@ -625,7 +628,7 @@ class MenuWindow(QMainWindow):
                 parent=self,
                 csv_name=self.csv_name,
                 # serial_port=self.bci_serial_port,
-                # arduino_serial_port=self.arduino_serial_port
+                # imu_serial_port=self.imu_serial_port
             )
             self.model_window.show()
             # logger.info("Created baseline window")

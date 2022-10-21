@@ -70,13 +70,18 @@ class IMUbaseline_win(QWidget):
         self,
         parent=None,
         csv_name=None,
-        arduino_serial_port=None
+        imu_serial_port=None
     ):
         super().__init__()
         self.csv_name = csv_name[:-4] + "_" + str(int(time.time())) + ".csv"
         # self.csv_name = csv_name
         self.parent = parent
-        self.arduino_serial_port=arduino_serial_port
+        self.par = self.parent.par
+        self.imu = self.parent.imu
+
+        self.imu_serial_port=imu_serial_port
+
+        self.imu_csv_order = self.parent.imu_csv_order
 
         self.imu_count = 0
 
@@ -100,6 +105,9 @@ class IMUbaseline_win(QWidget):
 
                 'gyro_count' : 0,
                 'gyro_data' : [],
+
+                'count' : 0,
+                'data': []
             },   
             1: {
                 'is_connected' : False,
@@ -115,6 +123,9 @@ class IMUbaseline_win(QWidget):
 
                 'gyro_count' : 0,
                 'gyro_data' : [],
+
+                'count' : 0,
+                'data': []
             },
         }
 
@@ -175,7 +186,7 @@ class IMUbaseline_win(QWidget):
         }
 
         # now we can init stuff for our trials
-        self.trials_per_move = 5
+        self.trials_per_move = 1
         self.moves = self.parent.action_num
         self.total_trials = self.moves * self.trials_per_move
 
@@ -222,8 +233,17 @@ class IMUbaseline_win(QWidget):
         self.port = 'COM27'
         self.baud = 9600
 
-        self.dataNumBytes = 16
+        self.recieve_address = False
+        self.address_wait_time = 10
+
+        # self.dataNumBytes = 16
+        self.dataAddressNumBytes = 17
+        # self.addressData = bytearray(self.dataAddressNumBytes)
+
+        self.dataNumBytes = 49
         self.rawData = bytearray(self.dataNumBytes)
+
+        self.imu_address_order = [] # the order that the peripherial IMUs are indexed as on the Central
 
         print('Trying to connect to: ' + str(self.port) + ' at ' + str(self.baud) + ' BAUD.')
         try:
@@ -245,53 +265,80 @@ class IMUbaseline_win(QWidget):
     def backgroundThread(self):    # retrieve data
         time.sleep(1.0)  # give some buffer time for retrieving data
         self.serialConnection.reset_input_buffer()
+        recieve_address_time_start = time.time()
         while (self.is_end == False):
             #######################
             ### add a self.imu_init == False: then wait for some bytes to be send to 
             ### arrive expect a short (0,1)
             ### then set a self.imu_ready = True
             ### then send a 1
+
+            ### should eventually throw an error if the incorrect number of IMUs addresses are sent back
+
             cur_bytes = self.serialConnection.inWaiting()
             # print("Number of bytes in the queue: " + str(cur_bytes))
-            if cur_bytes >= self.dataNumBytes:
-                bytes_read = self.serialConnection.readinto(self.rawData)
-                # print("bytes read:" + str(bytes_read)) # a boolean of how many recieved form the last line
-                
-                # Stop the block in the readSerialStart
-                if self.is_receiving == False:
-                    self.is_receiving = True 
+            if not self.recieve_address:
+                print("Number of bytes in the queue: " + str(cur_bytes))
+                if cur_bytes >= self.dataAddressNumBytes:
+                    line = self.serialConnection.readline().decode('utf-8').rstrip()
+                    # print(line)
+                    self.imu_address_order.append(line)
+                    time.sleep(0.5)
+                time_now = time.time()
+                time_waited = time_now - recieve_address_time_start
+                remaining_wait_time = self.address_wait_time - (time_waited)
+                print("the time spent waiting for ble addresses to be passed: {} \n time remaining: {}".format(str(time_waited),str(remaining_wait_time)))
+                if time_now - recieve_address_time_start > self.address_wait_time:
+                    self.recieve_address = True
+                    self.serialConnection.reset_input_buffer()
+                    print("final index list of IMUs found and subscribed to:")
+                    print(self.imu_address_order)
+                time.sleep(0.2)
+                ### Need to move the IMU count to here
+            else:
+                if cur_bytes >= self.dataNumBytes:
+                    bytes_read = self.serialConnection.readinto(self.rawData)
+                    # print("bytes read:" + str(bytes_read)) # a boolean of how many recieved form the last line
+                    
+                    # Stop the block in the readSerialStart
+                    if self.is_receiving == False:
+                        self.is_receiving = True 
 
-                val = struct.unpack('hhfff', self.rawData)
-                imu = val[0]
-                char = val[1]
+                    # val = struct.unpack('hfffffffffhbbbbbf', self.rawData)
+                    val = struct.unpack('=h9fh5bf', self.rawData)
+                    imu = val[0]
 
-                # The first time we get data from a new board - we flip boolean for that board's subdict in 
-                # imu_dict, save the time of the first read i.e. start time, and increment the imu_count so
-                if self.imu_dict[imu]['is_read'] == False:
-                    self.imu_dict[imu]['local_start_time'] = time.time()
-                    self.imu_dict[imu]['is_read'] = True
-                    self.imu_count += 1
+                    # The first time we get data from a new board - we flip boolean for that board's subdict in 
+                    # imu_dict, save the time of the first read i.e. start time, and increment the imu_count so
+                    if self.imu_dict[imu]['is_read'] == False:
+                        self.imu_dict[imu]['local_start_time'] = time.time()
+                        self.imu_dict[imu]['is_read'] = True
+                        self.imu_count += 1
 
-                print("-------------------------")
-                print(val)
-                print(len(val))
+                    # print("-------------------------")
+                    # print(val)
+                    # print(len(val))
 
-                print("imu index:" + str(imu))
-                print("characteristic index:" + str(char))
-                print(self.data_types[char])
+                    # print("imu index:" + str(imu))
+                    # print("characteristic index:" + str(char))
+                    # print(self.data_types[char])
 
-                val = list(val)
-                if char == 0: # if the first characteristic of the first device - add a empty trigger AND a count to the list
-                    val = [0] + [self.imu_dict[imu][self.count_types[char]]] + val[2:]
-                    self.imu_dict[imu][self.data_types[char]].append(val)
-                else:
-                    self.imu_dict[imu][self.data_types[char]].append(val[2:]) # for all other imu/char combo - only save the float values
+                    val = list(val)
+                    val = [0] + [self.imu_dict[imu]['count']] + val[1:]
+                    self.imu_dict[imu]['data'].append(val)
 
-                # print(val)
-                # print(len(val))
-                # print("-------------------------")
+                    # if char == 0: # if the first characteristic of the first device - add a empty trigger AND a count to the list
+                    #     val = [0] + [self.imu_dict[imu][self.count_types[char]]] + val[2:]
+                    #     self.imu_dict[imu][self.data_types[char]].append(val)
+                    # else:
+                    #     self.imu_dict[imu][self.data_types[char]].append(val[2:]) # for all other imu/char combo - only save the float values
 
-                self.imu_dict[imu][self.count_types[char]] += 1 # shift the count pointer to the new entry
+                    # print(val)
+                    # print(len(val))
+                    # print("-------------------------")
+
+                    # self.imu_dict[imu][self.count_types[char]] += 1 # shift the count pointer to the new entry
+                    self.imu_dict[imu]['count'] += 1 # shift the count pointer to the new entry
 
     def set_movie(self):
         print(self.stim_dict[self.stim_code]['movie_file'])
@@ -328,7 +375,7 @@ class IMUbaseline_win(QWidget):
         self.set_movie()
 
         for imu in range(self.imu_count):
-            self.imu_dict[imu]['orient_data'][-1][0] = self.stim_dict[self.stim_code]['trigger'] # replace the blank trigger
+            self.imu_dict[imu]['data'][-1][0] = self.stim_dict[self.stim_code]['trigger'] # replace the blank trigger
 
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.end_stim)
@@ -379,22 +426,30 @@ class IMUbaseline_win(QWidget):
         imu_data_size = []
 
         for i in range(self.imu_count):
-            orient_data = np.array(self.imu_dict[i]['orient_data'])
-            accel_data = np.array(self.imu_dict[i]['accel_data'])
-            gyro_data = np.array(self.imu_dict[i]['gyro_data'])
+            ### from here forth cna assume that the data sent is consistent across each type
+            # orient_data = np.array(self.imu_dict[i]['orient_data'])
+            # accel_data = np.array(self.imu_dict[i]['accel_data'])
+            # gyro_data = np.array(self.imu_dict[i]['gyro_data'])
 
-            print("orient data from board {}:".format(str(i)))
-            print(orient_data[0:10])
-            print("accel data from board {}:".format(str(i)))
-            print(accel_data[0:10])
-            print("gyro data from board {}:".format(str(i)))
-            print(gyro_data[0:10])
+            # print("orient data from board {}:".format(str(i)))
+            # print(orient_data[0:10])
+            # print("accel data from board {}:".format(str(i)))
+            # print(accel_data[0:10])
+            # print("gyro data from board {}:".format(str(i)))
+            # print(gyro_data[0:10])
 
-            min_size = min(np.shape(orient_data)[0],np.shape(accel_data)[0],np.shape(gyro_data)[0])
+            # min_size = min(np.shape(orient_data)[0],np.shape(accel_data)[0],np.shape(gyro_data)[0])
 
-            print("orient len from board " + str(i) + ":" + str(np.shape(orient_data)[0]))
-            print("accel len from board " + str(i) + ":" +  str(np.shape(accel_data)[0]))
-            print("gyro len from board " + str(i) + ":" +  str(np.shape(gyro_data)[0]))
+            # print("orient len from board " + str(i) + ":" + str(np.shape(orient_data)[0]))
+            # print("accel len from board " + str(i) + ":" +  str(np.shape(accel_data)[0]))
+            # print("gyro len from board " + str(i) + ":" +  str(np.shape(gyro_data)[0]))
+
+
+            data = np.array(self.imu_dict[i]['data'])
+
+            print("data from board {}:".format(str(i)))
+            print(data[0:10])
+            min_size = np.shape(data)[0]
 
             print(min_size)
             imu_data_size.append(min_size)
@@ -415,24 +470,50 @@ class IMUbaseline_win(QWidget):
         print(min_size_boards)
 
         if self.imu_count == 1:
-            data = np.concatenate((orient_data[0:min_size],accel_data[0:min_size],gyro_data[0:min_size]),axis=1)
+            # data = np.concatenate((orient_data[0:min_size],accel_data[0:min_size],gyro_data[0:min_size]),axis=1)
 
             df = pd.DataFrame(data)
-            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
+            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+            # df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
             # df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
         elif self.imu_count == 2:
+            ### can find the MAX value (instead of min) and zero pad - 
+            ### then iteratively add together sensor (all 3 char vals concated) 
             data = np.concatenate(
                 (
-                    self.imu_dict[0]['orient_data'][0:min_size_boards],
-                    self.imu_dict[0]['accel_data'][0:min_size_boards],
-                    self.imu_dict[0]['gyro_data'][0:min_size_boards],  
-                    self.imu_dict[1]['orient_data'][0:min_size_boards],
-                    self.imu_dict[1]['accel_data'][0:min_size_boards],
-                    self.imu_dict[1]['gyro_data'][0:min_size_boards],  
+                    # self.imu_dict[0]['orient_data'][0:min_size_boards],
+                    # self.imu_dict[0]['accel_data'][0:min_size_boards],
+                    # self.imu_dict[0]['gyro_data'][0:min_size_boards],  
+                    # self.imu_dict[1]['orient_data'][0:min_size_boards],
+                    # self.imu_dict[1]['accel_data'][0:min_size_boards],
+                    # self.imu_dict[1]['gyro_data'][0:min_size_boards],  
+                    self.imu_dict[0]['data'][0:min_size_boards],  
+                    self.imu_dict[1]['data'][0:min_size_boards],
                 ),
                 axis=1)
             df = pd.DataFrame(data)
-            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az'] 
+            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+
+        elif self.imu_count == 2:
+            ### can find the MAX value (instead of min) and zero pad - 
+            ### then iteratively add together sensor (all 3 char vals concated) 
+            data = np.concatenate(
+                (
+                    # self.imu_dict[0]['orient_data'][0:min_size_boards],
+                    # self.imu_dict[0]['accel_data'][0:min_size_boards],
+                    # self.imu_dict[0]['gyro_data'][0:min_size_boards],  
+                    # self.imu_dict[1]['orient_data'][0:min_size_boards],
+                    # self.imu_dict[1]['accel_data'][0:min_size_boards],
+                    # self.imu_dict[1]['gyro_data'][0:min_size_boards],  
+                    self.imu_dict[0]['data'][0:min_size_boards],  
+                    self.imu_dict[1]['data'][0:min_size_boards],
+                    self.imu_dict[2]['data'][0:min_size_boards],
+
+                ),
+                axis=1)
+            df = pd.DataFrame(data)
+            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+
 
         df.to_csv(self.csv_name,index=False)
         

@@ -64,6 +64,29 @@ class model_win(QWidget):
         # import data
         # restored_df = pd.DataFrame(np.transpose(restored_data))
 
+        '''
+        Need to add in a loop here that checks if the directory of the current csv_name
+        query the 
+
+        dirname = os.path.dirname(filepath)
+
+        def find_csv_filenames( path_to_dir, suffix=".csv" ):
+            filenames = listdir(path_to_dir)
+            return [ filename for filename in filenames if filename.endswith( suffix ) ]
+
+        filenames = find_csv_filenames("my/directory")
+        for name in filenames:
+        print name
+
+        # then get full path for each with 
+
+        path = os.path.join('dir', 'subdir', 'filename.ext')
+
+        add each to the y and X
+
+        '''
+
+
         df = pd.read_csv(self.csv_name)
         # print(df)
         # df.columns = ['trigger','count','euler_1','euler_2','euler_3']
