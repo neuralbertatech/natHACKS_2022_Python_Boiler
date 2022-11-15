@@ -207,8 +207,22 @@ class MenuWindow(QMainWindow):
             self.imu_con = "Debug"
             self.imu_serial_port = "COM5"
             # self.csv_name= "Test.csv"
-            self.imu_csv_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1']
-            self.imu = 'Arduino BLE 33'
+
+            self.imu_hardware = 'arduino'
+            self.imu_model = 'BLE33'
+            # self.imu_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1'] # arduino nanos
+            self.imu_order = ['2e:2e:b1:17:3e:25','03:f1:e2:ce:55:c8'] # arduino nanos
+
+            # self.imu_conn_type = 'arduino_dongle' # or 'BG112
+            # self.imu_conn_type = 'unspecified'
+
+            # self.imu_hardware = 'mbientlabs'
+            # self.imu_model = 'MMS'
+            # self.imu_order = ['F9:8B:CB:F9:BA:5F','CA:D7:01:EC:93:58','C5:C7:3A:B3:AB:4A'] # MMS
+            # self.imu_order = ['F9:8B:CB:F9:BA:5F','CA:D7:01:EC:93:58'] # MMS
+            # self.imu_order = ['F9:8B:CB:F9:BA:5F'] # MMS
+            # self.imu_conn_type = 'unspecified'
+
             self.board_id = -1
             self.model = "Muse 2"
             self.hardware = "Muse"

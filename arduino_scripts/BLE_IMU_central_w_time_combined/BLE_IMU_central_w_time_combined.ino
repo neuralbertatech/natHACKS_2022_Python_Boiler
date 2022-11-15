@@ -423,29 +423,3 @@ void loop()
     }
   }
 }
-
-//void gyro1CharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
-//  if (gyro1Characteristic.value()) {
-//    short info[2] = { 0, 2 };
-//    float gyro1Data[3];
-//    gyro1Characteristic.readValue( &gyro1Data, 12 );
-//  
-//    for (int i = 0; i < 2; i++){
-//      byte packetArray[2] = {
-//        ((uint8_t*)&info[i])[0],
-//        ((uint8_t*)&info[i])[1],
-//      };
-//      Serial.write(packetArray, sizeof(packetArray));
-//    }
-//    
-//    for (int i = 0; i < 3; i++){
-//      byte packetArray[4] = {
-//        ((uint8_t*)&gyro1Data[i])[0],
-//        ((uint8_t*)&gyro1Data[i])[1],
-//        ((uint8_t*)&gyro1Data[i])[2],
-//        ((uint8_t*)&gyro1Data[i])[3],
-//      };
-//      Serial.write(packetArray, sizeof(packetArray));
-//    }
-//  }
-//}
