@@ -36,7 +36,7 @@ class model_win(QWidget):
     ):
         super().__init__()
         # self.csv_name = csv_name
-        self.csv_name = "C:\\Users\\eredm\\Documents\\GitHub\\natHACKS_2022_Python_Boiler\\imu_boiler_1.csv"
+        # self.csv_name = "C:\\Users\\eredm\\Documents\\GitHub\\natHACKS_2022_Python_Boiler\\data\\1001\\imu_boiler_1.csv"
         self.parent = parent
 
         self.setFixedSize(200, 200)
@@ -86,8 +86,24 @@ class model_win(QWidget):
 
         '''
 
+        dirname = os.path.dirname(self.parent.csv_name)
+        
+        def find_csv_filenames( path_to_dir, suffix=".csv" ):
+            filenames = os.listdir(path_to_dir)
+            return [ filename for filename in filenames if filename.endswith( suffix ) ]
 
-        df = pd.read_csv(self.csv_name)
+        fnames = find_csv_filenames(dirname)
+        for name in fnames:
+            print(name)
+
+        for fname in range(len(fnames)):
+            path = os.path.join(dirname, fnames[fname])
+            if fname == 0:    
+                df = pd.read_csv(path)
+            else:
+                temp = pd.read_csv(path)
+                pd = pd.concat([df,temp])
+                
         # print(df)
         # df.columns = ['trigger','count','euler_1','euler_2','euler_3']
         print(df[0:-1])

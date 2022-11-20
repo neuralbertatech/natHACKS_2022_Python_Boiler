@@ -1,0 +1,21 @@
+arudino nano - with 2 peripheral and 1 central 
+imu_boiler_1668557288
+	trials: 60
+	time: 431.17533326148987 seconds
+	board #0 the sampling rate was 22.12093147317312 [9538]
+	board #1 the sampling rate was 22.069908146227238 [9516]
+imu_boiler_1668557893
+	trials: 55
+	time: 556.0018141269684 seconds
+	board #0 the sampling rate was 22.309279726859717 [12404] 
+	board #1 the sampling rate was 20.643817535060933 [11478] - lost 5 trials
+imu_boiler_1668558685
+	trials: 59
+	time: 429.3205215930939 seconds
+	board #0 the sampling rate was 21.846148805552165 [9379] - lost 1 trial
+	board #1 the sampling rate was 22.158269920803683 [9513] 
+imu_boiler_
+	trials: 52
+	time:  seconds
+	board #0 the sampling rate was 22.6512073112553 [9695] 
+	board #1 the sampling rate was 19.51812128707857 [8354] - lost 8 trials

@@ -199,7 +199,8 @@ class MenuWindow(QMainWindow):
         ### DEBUG ###
         self.debug = True
 
-        self.action_num = 1
+        self.action_num = 6
+        self.trials_per_move = 10
         self.epoch_len = 100
 
         if self.debug == True:
@@ -211,7 +212,7 @@ class MenuWindow(QMainWindow):
             self.imu_hardware = 'arduino'
             self.imu_model = 'BLE33'
             # self.imu_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1'] # arduino nanos
-            self.imu_order = ['2e:2e:b1:17:3e:25','03:f1:e2:ce:55:c8'] # arduino nanos
+            self.imu_order = ['2e:2e:b1:17:3e:25','03:f1:e2:ce:55:c8'] # arduino nanos - wrist, elbow
 
             # self.imu_conn_type = 'arduino_dongle' # or 'BG112
             # self.imu_conn_type = 'unspecified'

@@ -183,7 +183,7 @@ class IMUbaseline_win(QWidget):
         }
 
         # now we can init stuff for our trials
-        self.trials_per_move = 1
+        self.trials_per_move = self.parent.trials_per_move
         self.moves = self.parent.action_num
         self.total_trials = self.moves * self.trials_per_move
 
