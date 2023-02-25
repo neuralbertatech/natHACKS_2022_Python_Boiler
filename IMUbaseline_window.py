@@ -1,28 +1,5 @@
 """
-This is the right task
-- it displays either a blue or green circle and records when user hits space
-it pumps data about what happens when to an lsl stream
-it also receive eeg data from a muse, or simulates it
-This data is recorder along with events
-EVENT KEY:
-0 - Begin trial
-1 - left color displayed (blue)
-2 - right color displayed (green)
-3 - user pressed space
-11 - end trial
-It contains partially complete code to graph ERP afterwards.
-The data is stored with tines leftized (timestamp 0 when stim first displayed, for each trial)
-so setting up an ERP graph should be reasonably simple
-Project ideas: any project where the user sees something displayed and interacts with it, while eeg is recorded
 
-Madeleine
-65/66 init param object
-
-110-114 init board object + begin stream
-
-214 - get data from board at end of baseline
-
-220 - write data to file
 
 """
 from __future__ import print_function
@@ -36,10 +13,6 @@ import pandas as pd
 
 from threading import Thread
 import serial
-
-# from functools import partial
-# import pygatt
-# import collections
 import struct
 
 import numpy as np
@@ -49,26 +22,9 @@ from PyQt5.QtGui import QBrush, QFont, QPainter, QPen, QPolygon, QMovie
 from PyQt5.QtOpenGL import *
 from PyQt5.QtWidgets import *
 
-### mbientlabs packages - also requires time and threading (previously imported here - refer to )
+### mbientlabs packages - also requires time and threading (previously imported here)
 from mbientlab.metawear import MetaWear, libmetawear, parse_value
 from mbientlab.metawear.cbindings import *
-
-# log_file = "boiler.log"
-# logging.basicConfig(level=logging.INFO, filemode="a")
-
-# f = logging.Formatter(
-#     "Logger: %(name)s: %(levelname)s at: %(asctime)s, line %(lineno)d: %(message)s"
-# )
-# stdout = logging.StreamHandler(sys.stdout)
-# boiler_log = logging.FileHandler(log_file)
-# stdout.setFormatter(f)
-# boiler_log.setFormatter(f)
-
-# logger = logging.getLogger("BaselineWindow")
-# logger.addHandler(boiler_log)
-# logger.addHandler(stdout)
-# logger.info("Program started at {}".format(time.time()))
-
 
 class IMUbaseline_win(QWidget):
     def __init__(
@@ -76,7 +32,8 @@ class IMUbaseline_win(QWidget):
         parent=None,
         csv_name=None,
         imu_serial_port=None
-    ):
+        ):
+
         super().__init__()
         self.csv_name = csv_name[:-4] + "_" + str(int(time.time())) + ".csv"
         # self.csv_name = csv_name
@@ -205,7 +162,7 @@ class IMUbaseline_win(QWidget):
         self.running_trial = False
         self.display_instructions()
 
-        # state for if the user is current in a responding period
+        # state for if the user is currently in a responding period
         self.responding_time = False
 
         # the timer is an object that creates timeout events at regular intervals after it's started with timer.start(# ms to run for)
@@ -223,8 +180,6 @@ class IMUbaseline_win(QWidget):
         # To ensure we dont try to close the object a second time
         self.is_end = False
 
-        # self.com_list = ['COM5','COM6']
-
         ################ Connecting to serial port ##########################
 
         if self.imu_hardware == "arduino":
@@ -236,9 +191,7 @@ class IMUbaseline_win(QWidget):
                 self.recieve_address = False
                 self.address_wait_time = 5
 
-                # self.dataNumBytes = 16
                 self.dataAddressNumBytes = 17
-                # self.addressData = bytearray(self.dataAddressNumBytes)
 
                 self.dataNumBytes = 49
                 self.rawData = bytearray(self.dataNumBytes)
@@ -253,6 +206,7 @@ class IMUbaseline_win(QWidget):
                     print("Failed to connect with " + str(self.port) + ' at ' + str(self.baud) + ' BAUD.')
 
                 self.readSerialStart()
+                
         elif self.imu_hardware == "mbientlabs":
             if self.imu_model == "MMS":
                 sibling = self
@@ -264,18 +218,8 @@ class IMUbaseline_win(QWidget):
                         self.callback = FnVoid_VoidP_DataP(self.data_handler)
                     # callback
                     def data_handler(self, ctx, data):
-                        print("%s -> %s" % (self.device.address, parse_value(data)))
+                        # print("%s -> %s" % (self.device.address, parse_value(data)))
                         self.samples+= 1 
-                        ### Need to add saving to imu_dict
-                        print(self.device.address)
-                        print(type(self.device.address))
-                        
-                        print("-------")
-
-                        for x in range(len(sibling.imu_order)):
-                            print(sibling.imu_order[x])
-
-                        # print(sibling.imu_order[0])
 
                         imu = sibling.imu_order.index(self.device.address)
 
@@ -283,29 +227,18 @@ class IMUbaseline_win(QWidget):
                             sibling.imu_dict[imu]['local_start_time'] = time.time() # save the time of the first read i.e. start time
                             sibling.imu_dict[imu]['is_read'] = True # tie off this init flow
                             sibling.imu_count += 1 # increment the imu_count so
-                            print("IMU count has been increased to: {}".format(str(self.imu_count)))
+                            print("IMU count has been increased to: {}".format(str(sibling.imu_count)))
 
-                        # print("imu index:" + str(imu))
-                        # print("-------------------------")
-                        # print(val)
-                        # print(len(val))
-
-                        val = parse_value(data)
-                        print(type(val))
-                        val = [0] + [self.imu_dict[imu]['count']] + val[1:] # concat a blank trig, count, and full data sample from imu (minus the IMU serial identifier)
-                        self.imu_dict[imu]['data'].append(val)
-
-                        # print(val)
-                        # print(len(val))
-                        # print("-------------------------")
-
-                        self.imu_dict[imu]['count'] += 1 # shift the count pointer to the new entry
+                        val = [0,sibling.imu_dict[imu]['count'],parse_value(data).x,parse_value(data).y,parse_value(data).y]
+                        sibling.imu_dict[imu]['data'].append(val)
+                        sibling.imu_dict[imu]['count'] += 1 # shift the count pointer to the new entry
  
                 self.states = []
 
                 # connect
                 for i in range(len(self.imu_order)):
                     d = MetaWear(self.imu_order[i])
+                    print("Attempting to connect to {}".format(self.imu_order[i]))
                     d.connect()
                     print("Connected to " + d.address + " over " + ("USB" if d.usb.is_connected else "BLE"))
                     self.states.append(State(d))
@@ -326,6 +259,12 @@ class IMUbaseline_win(QWidget):
                     # start acc
                     libmetawear.mbl_mw_acc_enable_acceleration_sampling(s.device.board)
                     libmetawear.mbl_mw_acc_start(s.device.board)
+
+        while self.imu_count != len(self.imu_order):
+            print("test")
+            time.sleep(0.2)
+        self.is_receiving = True
+        print("unblocking pyqt5")
 
     def readSerialStart(self):
         if self.thread == None:
@@ -389,28 +328,12 @@ class IMUbaseline_win(QWidget):
                                 self.imu_count += 1 # increment the imu_count so
                                 print("IMU count has been increased to: {}".format(str(self.imu_count)))
 
-                            # print("imu index:" + str(imu))
-
-                            # print("-------------------------")
-                            # print(val)
-                            # print(len(val))
-
                             val = list(val)
                             val = [0] + [self.imu_dict[imu]['count']] + val[1:] # concat a blank trig, count, and full data sample from imu (minus the IMU serial identifier)
                             self.imu_dict[imu]['data'].append(val)
 
-                            # print(val)
-                            # print(len(val))
-                            # print("-------------------------")
-
                             self.imu_dict[imu]['count'] += 1 # shift the count pointer to the new entry
  
-        # elif self.imu_hardware == "mbientlabs":
-        #     if self.imu_model == "MMS":
-
-                    # else:
-                    #     pass
-
     def set_movie(self):
         print(self.stim_dict[self.stim_code]['movie_file'])
         self.movie = QMovie("animations/" + self.stim_dict[self.stim_code]['movie_file'])
@@ -446,9 +369,9 @@ class IMUbaseline_win(QWidget):
         self.set_movie()
 
         ### the next line is injecting trigger - currently not for mbientlabs
-        if self.imu_model == "BLE33":
-            for imu in range(self.imu_count):
-                self.imu_dict[imu]['data'][-1][0] = self.stim_dict[self.stim_code]['trigger'] # replace the blank trigger
+        # if self.imu_model == "BLE33":
+        for imu in range(self.imu_count):
+            self.imu_dict[imu]['data'][-1][0] = self.stim_dict[self.stim_code]['trigger'] # replace the blank trigger
 
         self.stim_timer.timeout.disconnect()
         self.stim_timer.timeout.connect(self.end_stim)
@@ -532,34 +455,38 @@ class IMUbaseline_win(QWidget):
         print("The smallest data size for any board is:")
         print(min_size_boards)
 
-        if self.imu_count == 1:
-            # data = np.concatenate((orient_data[0:min_size],accel_data[0:min_size],gyro_data[0:min_size]),axis=1)
+        ### need to add a board agnostic zero buffer to make numpy happy for concats
 
-            df = pd.DataFrame(data)
-            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
-        elif self.imu_count == 2:
-            ### can find the MAX value (instead of min) and zero pad - 
-            ### then iteratively add together sensor (all 3 char vals concated) 
-                # self.imu_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1'] ### from their defined order in parent 
-                # self.imu_address_order                                         ### from their order being identified/indexed by Central
-            if self.imu_order[0] == self.imu_address_order[0]:
-                print("\n")
-                print("imu_order and imu_address_order match! Keeping current order for saving to csv!")
-                data = np.concatenate(
-                    ( 
-                        self.imu_dict[0]['data'][0:min_size_boards],  
-                        self.imu_dict[1]['data'][0:min_size_boards],
-                    ),axis=1)
-            else:
-                print("\n")
-                print("imu_order and imu_address_order don't match! Changing order that they are saved to csv!")
-                data = np.concatenate(
-                    (
-                        self.imu_dict[1]['data'][0:min_size_boards],  
-                        self.imu_dict[0]['data'][0:min_size_boards],
-                    ),axis=1)
-            df = pd.DataFrame(data)
-            df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+        if self.imu_hardware == "arduino":
+            if self.imu_model == "BLE33":
+                if self.imu_count == 1:
+                    # data = np.concatenate((orient_data[0:min_size],accel_data[0:min_size],gyro_data[0:min_size]),axis=1)
+
+                    df = pd.DataFrame(data)
+                    df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+                elif self.imu_count == 2:
+                    ### can find the MAX value (instead of min) and zero pad - 
+                    ### then iteratively add together sensor (all 3 char vals concated) 
+                        # self.imu_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1'] ### from their defined order in parent 
+                        # self.imu_address_order                                         ### from their order being identified/indexed by Central
+                    if self.imu_order[0] == self.imu_address_order[0]:
+                        print("\n")
+                        print("imu_order and imu_address_order match! Keeping current order for saving to csv!")
+                        data = np.concatenate(
+                            ( 
+                                self.imu_dict[0]['data'][0:min_size_boards],  
+                                self.imu_dict[1]['data'][0:min_size_boards],
+                            ),axis=1)
+                    else:
+                        print("\n")
+                        print("imu_order and imu_address_order don't match! Changing order that they are saved to csv!")
+                        data = np.concatenate(
+                            (
+                                self.imu_dict[1]['data'][0:min_size_boards],  
+                                self.imu_dict[0]['data'][0:min_size_boards],
+                            ),axis=1)
+                    df = pd.DataFrame(data)
+                    df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
 
         # elif self.imu_count == 3:
         #     ### can find the MAX value (instead of min) and zero pad - 
@@ -574,6 +501,22 @@ class IMUbaseline_win(QWidget):
         #         axis=1)
         #     df = pd.DataFrame(data)
         #     df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+        elif self.imu_hardware == "mbientlabs":
+            if self.imu_model == "MMS":
+                temp_data_array = []
+                for i in range(self.imu_count):
+                    if i == 0:
+                        temp_data_array = self.imu_dict[i]['data'][0:min_size_boards]
+                    else:
+                        temp_data_array = np.concatenate(
+                            (
+                            temp_data_array,  
+                            self.imu_dict[i]['data'][0:min_size_boards],
+                            ),axis=1)
+                df = pd.DataFrame(temp_data_array)
+                temp_names = ['trigger','count','ax','ay','az']
+                # df.columns = ['trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond','trigger','count','euler_1','euler_2','euler_3','gx','gy','gz','ax','ay','az','year','month','day','hour','minute','second','millisecond'] 
+                df.columns = temp_names * self.imu_count
 
         df.to_csv(self.csv_name,index=False)
         

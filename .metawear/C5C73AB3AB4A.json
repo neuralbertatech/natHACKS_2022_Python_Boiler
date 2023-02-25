@@ -3,7 +3,7 @@
     "model": "8",
     "hardware": "0.1",
     "manufacturer": "MbientLab Inc",
-    "serial": "055D14",
+    "serial": "055D1C",
     "firmware": "1.7.2"
   },
   "cpp_state": [
@@ -720,9 +720,9 @@
     19,
     0,
     1,
-    159,
-    225,
-    94,
+    142,
+    255,
+    154,
     53,
     132,
     1,

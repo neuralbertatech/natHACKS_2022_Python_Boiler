@@ -199,8 +199,8 @@ class MenuWindow(QMainWindow):
         ### DEBUG ###
         self.debug = True
 
-        self.action_num = 6
-        self.trials_per_move = 10
+        self.action_num = 1 #6
+        self.trials_per_move = 1 #10
         self.epoch_len = 100
 
         if self.debug == True:
@@ -209,19 +209,22 @@ class MenuWindow(QMainWindow):
             self.imu_serial_port = "COM5"
             # self.csv_name= "Test.csv"
 
-            self.imu_hardware = 'arduino'
-            self.imu_model = 'BLE33'
-            # self.imu_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1'] # arduino nanos
-            self.imu_order = ['2e:2e:b1:17:3e:25','03:f1:e2:ce:55:c8'] # arduino nanos - wrist, elbow
+            # self.imu_hardware = 'arduino'
+            # self.imu_model = 'BLE33'
+            # # self.imu_order = ['2e:2e:b1:17:3e:25','0a:54:f1:e2:b3:c1'] # arduino nanos
+            # self.imu_order = ['2e:2e:b1:17:3e:25','03:f1:e2:ce:55:c8'] # arduino nanos - wrist, elbow
 
             # self.imu_conn_type = 'arduino_dongle' # or 'BG112
             # self.imu_conn_type = 'unspecified'
 
-            # self.imu_hardware = 'mbientlabs'
-            # self.imu_model = 'MMS'
+            self.imu_hardware = 'mbientlabs'
+            self.imu_model = 'MMS'
             # self.imu_order = ['F9:8B:CB:F9:BA:5F','CA:D7:01:EC:93:58','C5:C7:3A:B3:AB:4A'] # MMS
-            # self.imu_order = ['F9:8B:CB:F9:BA:5F','CA:D7:01:EC:93:58'] # MMS
-            # self.imu_order = ['F9:8B:CB:F9:BA:5F'] # MMS
+            # self.imu_order = ['F9:8B:CB:F9:BA:5F','CA:D7:01:EC:93:58'] # MMS - wrist, elbow
+            self.imu_order = ['C5:C7:3A:B3:AB:4A','F9:8B:CB:F9:BA:5F'] # MMS - wrist, elbow
+            # self.imu_order = ['F9:8B:CB:F9:BA:5F'] # MMS - confirmed
+            # self.imu_order = ['CA:D7:01:EC:93:58'] # MMS
+            # self.imu_order = ['C5:C7:3A:B3:AB:4A'] # MMS - confirmed
             # self.imu_conn_type = 'unspecified'
 
             self.board_id = -1
