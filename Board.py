@@ -25,20 +25,21 @@ EXG_PILL = "EXG Pill"
 UNICORN = "Unicorn"
 
 
-def get_serial_port(board_id):
+def get_serial_port(board_id,portstring='COM'):
     """Gets the working COM port for the device on which this script
     is running.
 
     Args:
         board_id (Integer): Brainflow's board_id for the board which is trying to connect.
+        portstring (optional): Default COM - the string to put numbers after when trying ports
 
     Returns:
         String: The serial port to connect to the device, in the form "COM#". If no port exists,
         an empty string is returned.
     """
     params = BrainFlowInputParams()
-    for i in range(10):
-        params.serial_port = "COM" + str(i)
+    for i in range(20):
+        params.serial_port = portstring + str(i)
         board = BoardShim(board_id, params)
         try:
             board.prepare_session()
@@ -83,7 +84,7 @@ class Board(BoardShim):
         use_serial_port = [0,1,2,22,21,30]
         if self.board_id in use_serial_port:
             self.params.serial_port = (
-                serial_port if serial_port is not None else get_serial_port(self.board_id)
+                serial_port if serial_port is not None else get_serial_port(self.board_id,) #portstring = '/dev/ttyUSB')
             )
 
         # Initialize BoardShim object
@@ -143,7 +144,7 @@ class Board(BoardShim):
         """
         Get only a specified amount of most recent board data
         If num_points is not specified, will use the num_points given on init.
-        If not specified on init, will produced error.
+        If not specified on init, will produce error.
         """
         if num_points is None:
             if self.num_points is None:
@@ -182,7 +183,10 @@ def get_board_id(data_type, hardware, model):
     if data_type == CONNECT:
         if hardware == BCI:
             if model == GANGLION:
-                board_id = 1
+                if platform.system() == "Windows":
+                    board_id = 1
+                else:
+                    board_id = 46
             elif model == CYTON:
                 board_id = 0
             elif model == CYTON_DAISY:

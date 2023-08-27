@@ -101,7 +101,7 @@ class graph_win(QWidget):
             self.description = BoardShim.get_board_descr(board_id)
 
         self.update_speed_ms = 50
-        self.window_size = 5
+        self.window_size = 5 # number of seconds to display
         self.num_points = self.window_size * self.sampling_rate
 
         if not self.board:
@@ -167,7 +167,7 @@ class graph_win(QWidget):
 
         # this is data to be saved. It is only new data since our last call
         data = self.board.get_new_data()
-        #print("Data1: {}".format(data))
+        
         # save data to our csv super quick
         save_to_csv(
             data, self.save_file, self.exg_channels, logger
@@ -175,6 +175,7 @@ class graph_win(QWidget):
         # note that the data objectwill porbably contain lots of dattathat isn't eeg
         # how much and what it is depends on the board. exg_channels contains the key for
         # what is and isn't eeg. We will ignore non eeg and not save it
+        # logger.info('data[0] length is {}'.format(len(data[0])))
 
         data_len = data.shape[1]
         if data_len + self.cur_line >= self.data_max_len:
@@ -194,41 +195,43 @@ class graph_win(QWidget):
 
         # this is data to be graphed. It is the most recent data, of the length that we want to graph
         data = self.board.get_data_quantity(self.num_points)
+        # logger.info("Data for graphing is: {}".format(data))
+        # logger.info('data for graphing length is {}'.format(len(data)))
         for count, channel in enumerate(self.exg_channels):
             # plot timeseries
             DataFilter.detrend(data[channel], DetrendOperations.CONSTANT.value)
             DataFilter.perform_bandpass(
                 data[channel],
                 self.sampling_rate,
-                51.0,
-                100.0,
-                2,
-                FilterTypes.BUTTERWORTH.value,
-                0,
-            )
-            DataFilter.perform_bandpass(
-                data[channel],
-                self.sampling_rate,
-                51.0,
-                100.0,
-                2,
-                FilterTypes.BUTTERWORTH.value,
-                0,
-            )
-            DataFilter.perform_bandstop(
-                data[channel],
-                self.sampling_rate,
-                50.0,
-                4.0,
-                2,
-                FilterTypes.BUTTERWORTH.value,
-                0,
-            )
-            DataFilter.perform_bandstop(
-                data[channel],
-                self.sampling_rate,
+                1.0,
                 60.0,
-                4.0,
+                2,
+                FilterTypes.BUTTERWORTH.value,
+                0,
+            )
+            # DataFilter.perform_bandpass(
+            #     data[channel],
+            #     self.sampling_rate,
+            #     51.0,
+            #     100.0,
+            #     2,
+            #     FilterTypes.BUTTERWORTH.value,
+            #     0,
+            # )
+            # DataFilter.perform_bandstop(
+            #     data[channel],
+            #     self.sampling_rate,
+            #     50.0,
+            #     4.0,
+            #     2,
+            #     FilterTypes.BUTTERWORTH.value,
+            #     0,
+            # )
+            DataFilter.perform_bandstop(
+                data[channel],
+                self.sampling_rate,
+                58.0,
+                62.0,
                 2,
                 FilterTypes.BUTTERWORTH.value,
                 0,
